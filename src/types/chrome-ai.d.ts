@@ -1,59 +1,111 @@
 /**
  * Chrome Built-in AI Type Definitions
- * Based on Chrome's Prompt API, Summarizer API, Translator API, Language Detector API
+ * Based on official Chrome docs: https://developer.chrome.com/docs/ai/built-in-apis
  */
 
-// Window interface with AI capabilities
+// Global AI constructors (Chrome 138+)
 declare global {
+  const LanguageModel: LanguageModelConstructor;
+  const Summarizer: SummarizerConstructor;
+  const Translator: TranslatorConstructor;
+  const LanguageDetector: LanguageDetectorConstructor;
+
   interface Window {
-    ai?: {
-      languageModel?: LanguageModelFactory;
-      summarizer?: SummarizerFactory;
-      translator?: TranslatorFactory;
-      languageDetector?: LanguageDetectorFactory;
-    };
+    LanguageModel?: LanguageModelConstructor;
+    Summarizer?: SummarizerConstructor;
+    Translator?: TranslatorConstructor;
+    LanguageDetector?: LanguageDetectorConstructor;
   }
 }
 
-// Language Model (Prompt API)
-interface LanguageModelFactory {
-  create(options?: LanguageModelOptions): Promise<LanguageModel>;
-  capabilities(): Promise<LanguageModelCapabilities>;
+// Global constructors for Chrome Built-in AI APIs
+interface LanguageModelConstructor {
+  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
+  create(options?: LanguageModelCreateOptions): Promise<LanguageModel>;
+  params(): Promise<{
+    defaultTopK: number;
+    maxTopK: number;
+    defaultTemperature: number;
+    maxTemperature: number;
+  }>;
 }
 
-interface LanguageModelOptions {
+interface LanguageModelCreateOptions {
   temperature?: number;
   topK?: number;
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
+  expectedInputs?: Array<{ type: string; languages: string[] }>;
+  expectedOutputs?: Array<{ type: string; languages: string[] }>;
+  initialPrompts?: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+  }>;
 }
 
-interface LanguageModelCapabilities {
-  available: 'readily' | 'after-download' | 'no';
+interface DownloadMonitor extends EventTarget {
+  addEventListener(
+    type: 'downloadprogress',
+    listener: (event: DownloadProgressEvent) => void
+  ): void;
 }
 
+interface DownloadProgressEvent extends Event {
+  loaded: number;
+  total: number;
+}
+
+// Language Model (Prompt API) - Chrome 138+
 interface LanguageModel {
-  prompt(input: string): Promise<string>;
-  promptStreaming(input: string): ReadableStream<string>;
+  prompt(input: string, options?: PromptOptions): Promise<string>;
+  promptStreaming(
+    input: string,
+    options?: PromptOptions
+  ): ReadableStream<string>;
+  append(
+    prompts: Array<{
+      role: 'user' | 'assistant';
+      content: string | Array<{ type: string; value: any }>;
+    }>
+  ): Promise<void>;
+  clone(options?: { signal?: AbortSignal }): Promise<LanguageModel>;
   destroy(): void;
+  readonly inputUsage: number;
+  readonly inputQuota: number;
 }
 
-// Summarizer API
-interface SummarizerFactory {
+interface PromptOptions {
+  signal?: AbortSignal;
+  responseConstraint?: any; // JSON Schema for structured output
+  omitResponseConstraintInput?: boolean;
+}
+
+// Summarizer API - Chrome 138+
+interface SummarizerConstructor {
+  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
   create(options?: SummarizerOptions): Promise<Summarizer>;
-  capabilities(): Promise<SummarizerCapabilities>;
+}
+
+interface TranslatorConstructor {
+  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
+  create(options: TranslatorOptions): Promise<Translator>;
+}
+
+interface LanguageDetectorConstructor {
+  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
+  create(): Promise<LanguageDetector>;
 }
 
 interface SummarizerOptions {
-  type?: 'key-points' | 'tl;dr' | 'teaser' | 'headline';
+  type?: 'key-points' | 'tldr' | 'teaser' | 'headline';
   format?: 'plain-text' | 'markdown';
   length?: 'short' | 'medium' | 'long';
   sharedContext?: string;
-}
-
-interface SummarizerCapabilities {
-  available: 'readily' | 'after-download' | 'no';
-  supportsType(type: string): boolean;
-  supportsFormat(format: string): boolean;
-  supportsLength(length: string): boolean;
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
+  expectedInputLanguages?: string[];
+  outputLanguage?: string;
+  expectedContextLanguages?: string[];
 }
 
 interface Summarizer {
@@ -65,23 +117,12 @@ interface Summarizer {
   destroy(): void;
 }
 
-// Translator API
-interface TranslatorFactory {
-  create(options: TranslatorOptions): Promise<Translator>;
-  capabilities(): Promise<TranslatorCapabilities>;
-}
-
+// Translator API - Chrome 138+
 interface TranslatorOptions {
   sourceLanguage: string;
   targetLanguage: string;
-}
-
-interface TranslatorCapabilities {
-  available: 'readily' | 'after-download' | 'no';
-  supportsLanguagePair(
-    sourceLanguage: string,
-    targetLanguage: string
-  ): Promise<'readily' | 'after-download' | 'no'>;
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
 }
 
 interface Translator {
@@ -89,16 +130,7 @@ interface Translator {
   destroy(): void;
 }
 
-// Language Detector API
-interface LanguageDetectorFactory {
-  create(): Promise<LanguageDetector>;
-  capabilities(): Promise<LanguageDetectorCapabilities>;
-}
-
-interface LanguageDetectorCapabilities {
-  available: 'readily' | 'after-download' | 'no';
-  supportsLanguage(language: string): boolean;
-}
+// Language Detector API - Chrome 138+
 
 interface LanguageDetector {
   detect(input: string): Promise<LanguageDetectionResult[]>;
@@ -111,20 +143,19 @@ interface LanguageDetectionResult {
 }
 
 export type {
+  DownloadMonitor,
+  DownloadProgressEvent,
   LanguageDetectionResult,
   LanguageDetector,
-  LanguageDetectorCapabilities,
-  LanguageDetectorFactory,
+  LanguageDetectorConstructor,
   LanguageModel,
-  LanguageModelCapabilities,
-  LanguageModelFactory,
-  LanguageModelOptions,
+  LanguageModelConstructor,
+  LanguageModelCreateOptions,
+  PromptOptions,
   Summarizer,
-  SummarizerCapabilities,
-  SummarizerFactory,
+  SummarizerConstructor,
   SummarizerOptions,
   Translator,
-  TranslatorCapabilities,
-  TranslatorFactory,
+  TranslatorConstructor,
   TranslatorOptions,
 };
