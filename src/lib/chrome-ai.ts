@@ -146,13 +146,18 @@ export async function summarizeText(
 
 /**
  * Summarize text with streaming (real-time updates)
+ * Returns an object with the async generator, reader, and summarizer for proper cleanup
  * Reference: https://developer.chrome.com/docs/ai/summarizer-api#stream_summarization
  */
-export async function* summarizeStreaming(
+export async function summarizeStreaming(
   text: string,
   options?: SummarizerOptions,
   context?: string
-): AsyncGenerator<string, void, unknown> {
+): Promise<{
+  stream: AsyncGenerator<string, void, unknown>;
+  reader: ReadableStreamDefaultReader<string>;
+  summarizer: Summarizer;
+}> {
   console.log('🔧 Creating summarizer for streaming...');
   const summarizer = await createSummarizer(options);
 
@@ -160,23 +165,24 @@ export async function* summarizeStreaming(
     throw new Error('Failed to create summarizer');
   }
 
-  try {
-    // Truncate if too long
-    const truncatedText = text.length > 50000 ? text.substring(0, 50000) : text;
-    console.log('📏 Text length:', truncatedText.length);
+  // Truncate if too long
+  const truncatedText = text.length > 50000 ? text.substring(0, 50000) : text;
+  console.log('📏 Text length:', truncatedText.length);
 
-    // Get ReadableStream from API
-    console.log('🌊 Calling summarizeStreaming API...');
-    const stream = context
-      ? summarizer.summarizeStreaming(truncatedText, { context })
-      : summarizer.summarizeStreaming(truncatedText);
+  // Get ReadableStream from API
+  console.log('🌊 Calling summarizeStreaming API...');
+  const readableStream = context
+    ? summarizer.summarizeStreaming(truncatedText, { context })
+    : summarizer.summarizeStreaming(truncatedText);
 
-    console.log('✅ Stream obtained:', stream);
+  console.log('✅ Stream obtained:', readableStream);
 
-    // Convert ReadableStream to AsyncGenerator
-    const reader = stream.getReader();
-    console.log('📖 Reader created, starting to read...');
+  // Get reader
+  const reader = readableStream.getReader();
+  console.log('📖 Reader created');
 
+  // Create async generator
+  async function* generateChunks(): AsyncGenerator<string, void, unknown> {
     let readCount = 0;
     try {
       while (true) {
@@ -201,14 +207,17 @@ export async function* summarizeStreaming(
           console.warn('⚠️ Empty value received');
         }
       }
-    } finally {
-      reader.releaseLock();
-      console.log('🔓 Reader released');
+    } catch (error) {
+      console.error('Stream reading error:', error);
+      throw error;
     }
-  } finally {
-    summarizer.destroy();
-    console.log('🗑️ Summarizer destroyed');
   }
+
+  return {
+    stream: generateChunks(),
+    reader,
+    summarizer,
+  };
 }
 
 /**

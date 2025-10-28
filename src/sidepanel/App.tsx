@@ -5,6 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import { useEffect } from 'react';
 import { ChatView } from './components/ChatView';
 import { ErrorBanner } from './components/ErrorBanner';
+import { HistoryView } from './components/library';
 import { SummaryView } from './components/summary';
 import { useAppStore } from './stores/appStore';
 
@@ -30,7 +31,6 @@ function App() {
       <div className="flex h-screen w-full flex-col bg-background">
         {/* Header */}
         <header className="shrink-0 border-b border-border p-4">
-          \n{' '}
           <h1 className="text-xl font-bold text-foreground">ContentChat AI</h1>
           <p className="text-sm text-muted-foreground">
             Privacy-first AI reading assistant
@@ -59,7 +59,7 @@ function App() {
                   variant={isActive ? 'default' : 'ghost'}
                   className="flex-1 rounded-none"
                   onClick={() => setActiveView(view.id)}
-                  disabled={view.id === 'translate' || view.id === 'library'}
+                  disabled={view.id === 'translate'}
                 >
                   <Icon className="mr-2 h-4 w-4" />
                   {view.label}
@@ -84,17 +84,7 @@ function App() {
               </div>
             </div>
           )}
-          {activeView === 'library' && (
-            <div className="flex h-full items-center justify-center p-6 text-center">
-              <div>
-                <Library className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-lg font-semibold">Coming Soon</h3>
-                <p className="text-sm text-muted-foreground">
-                  Library feature will be available soon
-                </p>
-              </div>
-            </div>
-          )}
+          {activeView === 'library' && <HistoryView />}
         </main>
       </div>
     </ThemeProvider>

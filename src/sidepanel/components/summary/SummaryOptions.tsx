@@ -4,7 +4,11 @@
  */
 
 import { Button } from '@/components/ui/button';
-import type { SummaryFormat, SummaryLength } from '../../stores/summaryStore';
+import type {
+  DetailLevel,
+  SummaryFormat,
+  SummaryLength,
+} from '../../stores/summaryStore';
 
 const CONTEXTS = [
   { value: '', label: 'General audience' },
@@ -27,22 +31,65 @@ const CONTEXTS = [
 interface SummaryOptionsProps {
   length: SummaryLength;
   format: SummaryFormat;
+  detailLevel?: DetailLevel;
   context: string;
   onLengthChange: (length: SummaryLength) => void;
   onFormatChange: (format: SummaryFormat) => void;
+  onDetailLevelChange: (detailLevel: DetailLevel) => void;
   onContextChange: (context: string) => void;
 }
 
 export function SummaryOptions({
   length,
   format,
+  detailLevel = 'standard',
   context,
   onLengthChange,
   onFormatChange,
+  onDetailLevelChange,
   onContextChange,
 }: SummaryOptionsProps) {
   return (
     <div className="border-b border-border bg-gradient-to-b from-muted/50 to-background p-4 space-y-4 animate-in slide-in-from-top duration-300">
+      {/* Detail Level - NEW! */}
+      <div>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+          Detail Level (Dynamic Length)
+        </label>
+        <div className="grid grid-cols-2 gap-1.5 p-1">
+          {(
+            ['brief', 'standard', 'detailed', 'comprehensive'] as DetailLevel[]
+          ).map((level) => {
+            const isActive = detailLevel === level;
+            const labels = {
+              brief: '3-5 points',
+              standard: '5-8 points',
+              detailed: '8-12 points',
+              comprehensive: '12+ points',
+            };
+            return (
+              <Button
+                key={level}
+                variant={isActive ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onDetailLevelChange(level)}
+                className={`
+                  text-xs capitalize transition-all duration-200 flex flex-col items-center py-3
+                  ${
+                    isActive
+                      ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-md'
+                      : 'hover:border-primary/50'
+                  }
+                `}
+              >
+                <span className="font-semibold">{level}</span>
+                <span className="text-[10px] opacity-80">{labels[level]}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">

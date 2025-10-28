@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatSummaryTypeLabel } from '@/lib/summary-utils';
-import { AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { AlertCircle, Loader2, Sparkles, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { SummaryLength, SummaryType } from '../../stores/summaryStore';
@@ -28,6 +28,7 @@ interface SummaryContentProps {
   // Actions
   onGenerate: () => void;
   onRetry: () => void;
+  onStop: () => void;
 }
 
 export function SummaryContent({
@@ -40,6 +41,7 @@ export function SummaryContent({
   activeLength,
   onGenerate,
   onRetry,
+  onStop,
 }: SummaryContentProps) {
   // Error Alert
   if (errorMessage && !isStreaming) {
@@ -98,28 +100,38 @@ export function SummaryContent({
   if (isStreaming) {
     return (
       <div className="space-y-4 animate-in fade-in duration-500">
-        <Card className="p-4 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-lg">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-primary/10">
+        <Card className="p-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-lg">
+          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-primary/10">
             <div className="relative">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <div className="absolute inset-0 blur-sm">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             </div>
-            <span className="text-sm font-semibold text-primary animate-pulse">
+            <span className="text-base font-semibold text-primary animate-pulse">
               Streaming summary...
             </span>
-            <Badge variant="secondary" className="ml-auto text-xs">
+            <Badge variant="secondary" className="ml-auto text-sm px-3 py-1">
               {streamingText.length} chars
             </Badge>
           </div>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="prose prose-xl dark:prose-invert max-w-none leading-loose [&>ul]:text-lg [&>ol]:text-lg [&>p]:text-lg [&>h1]:text-3xl [&>h2]:text-2xl [&>h3]:text-xl">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {streamingText || 'Starting...'}
             </ReactMarkdown>
-            <span className="inline-block w-0.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+            <span className="inline-block w-1 h-6 bg-primary animate-pulse ml-1 align-middle" />
           </div>
         </Card>
+
+        {/* Stop Button */}
+        <Button
+          onClick={onStop}
+          size="lg"
+          className="w-full font-bold shadow-lg hover:shadow-xl transition-all bg-red-600 hover:bg-red-700 text-white dark:bg-red-500 dark:hover:bg-red-600 border-2 border-red-700 dark:border-red-400"
+        >
+          <Square className="mr-2 h-5 w-5 fill-current" />
+          Stop Generation
+        </Button>
       </div>
     );
   }
@@ -127,8 +139,8 @@ export function SummaryContent({
   // Display Result
   if (displayText) {
     return (
-      <Card className="p-4 shadow-md hover:shadow-lg transition-shadow duration-300 border-muted">
-        <div className="prose prose-sm dark:prose-invert max-w-none">
+      <Card className="p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary/10 bg-gradient-to-br from-background to-muted/5">
+        <div className="prose prose-xl dark:prose-invert max-w-none leading-loose [&>ul]:text-lg [&>ol]:text-lg [&>p]:text-lg [&>h1]:text-3xl [&>h2]:text-2xl [&>h3]:text-xl [&>li]:mb-2">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {displayText}
           </ReactMarkdown>
