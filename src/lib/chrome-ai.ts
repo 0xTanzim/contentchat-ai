@@ -107,6 +107,7 @@ export async function createSummarizer(
       ...options,
     });
 
+    console.log('✅ Summarizer created successfully:', summarizer);
     return summarizer;
   } catch (error) {
     console.error('Failed to create summarizer:', error);
@@ -115,11 +116,12 @@ export async function createSummarizer(
 }
 
 /**
- * Summarize text with error handling
+ * Summarize text with error handling (batch mode)
  */
 export async function summarizeText(
   text: string,
-  options?: SummarizerOptions
+  options?: SummarizerOptions,
+  context?: string
 ): Promise<string> {
   const summarizer = await createSummarizer(options);
 
@@ -130,10 +132,77 @@ export async function summarizeText(
   try {
     // Truncate if too long (50k characters limit)
     const truncatedText = text.length > 50000 ? text.substring(0, 50000) : text;
-    const summary = await summarizer.summarize(truncatedText);
+
+    // Use context if provided
+    const summary = context
+      ? await summarizer.summarize(truncatedText, { context })
+      : await summarizer.summarize(truncatedText);
+
     return summary;
   } finally {
     summarizer.destroy();
+  }
+}
+
+/**
+ * Summarize text with streaming (real-time updates)
+ * Reference: https://developer.chrome.com/docs/ai/summarizer-api#stream_summarization
+ */
+export async function* summarizeStreaming(
+  text: string,
+  options?: SummarizerOptions,
+  context?: string
+): AsyncGenerator<string, void, unknown> {
+  console.log('🔧 Creating summarizer for streaming...');
+  const summarizer = await createSummarizer(options);
+
+  if (!summarizer) {
+    throw new Error('Failed to create summarizer');
+  }
+
+  try {
+    // Truncate if too long
+    const truncatedText = text.length > 50000 ? text.substring(0, 50000) : text;
+    console.log('📏 Text length:', truncatedText.length);
+
+    // Get ReadableStream from API
+    console.log('🌊 Calling summarizeStreaming API...');
+    const stream = context
+      ? summarizer.summarizeStreaming(truncatedText, { context })
+      : summarizer.summarizeStreaming(truncatedText);
+    
+    console.log('✅ Stream obtained:', stream);
+
+    // Convert ReadableStream to AsyncGenerator
+    const reader = stream.getReader();
+    console.log('📖 Reader created, starting to read...');
+    
+    let readCount = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        readCount++;
+        console.log(`📦 Read ${readCount}:`, { done, valueType: typeof value, valueLength: value?.length, valuePreview: value?.substring(0, 50) });
+        
+        if (done) {
+          console.log('🏁 Stream done after', readCount, 'reads');
+          break;
+        }
+        
+        if (value) {
+          console.log('✅ Yielding chunk:', value.length, 'chars');
+          yield value;
+        } else {
+          console.warn('⚠️ Empty value received');
+        }
+      }
+    } finally {
+      reader.releaseLock();
+      console.log('🔓 Reader released');
+    }
+  } finally {
+    summarizer.destroy();
+    console.log('🗑️ Summarizer destroyed');
   }
 }
 
@@ -142,7 +211,7 @@ export async function summarizeText(
  * Reference: https://developer.chrome.com/docs/ai/prompt-api
  */
 export async function createLanguageModel(
-  options?: LanguageModelOptions
+  options?: LanguageModelCreateOptions
 ): Promise<LanguageModel | null> {
   // Feature detection
   if (!('LanguageModel' in self)) {
