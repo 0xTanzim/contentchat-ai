@@ -136,10 +136,11 @@ export function SummaryView() {
         console.log(`📦 Chunk ${chunkCount}:`, {
           type: typeof chunk,
           length: chunk?.length,
-          preview: chunk?.substring(0, 100) + (chunk?.length > 100 ? '...' : ''),
-          isEmpty: !chunk || chunk.trim().length === 0
+          preview:
+            chunk?.substring(0, 100) + (chunk?.length > 100 ? '...' : ''),
+          isEmpty: !chunk || chunk.trim().length === 0,
         });
-        
+
         // Try both accumulation methods to see which works
         if (chunkCount === 1) {
           fullText = chunk; // First chunk
@@ -155,7 +156,7 @@ export function SummaryView() {
             console.log('✅ Using DELTA accumulation mode');
           }
         }
-        
+
         setStreamingText(fullText);
       }
 
@@ -168,7 +169,9 @@ export function SummaryView() {
         console.error('❌ ERROR: Empty summary!');
         console.error('Chunks received:', chunkCount);
         console.error('Final fullText:', fullText);
-        throw new Error(`No summary generated. Received ${chunkCount} chunks but text is empty. Please try again.`);
+        throw new Error(
+          `No summary generated. Received ${chunkCount} chunks but text is empty. Please try again.`
+        );
       }
 
       console.log('✅ Summary validated successfully!');

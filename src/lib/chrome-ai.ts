@@ -170,25 +170,30 @@ export async function* summarizeStreaming(
     const stream = context
       ? summarizer.summarizeStreaming(truncatedText, { context })
       : summarizer.summarizeStreaming(truncatedText);
-    
+
     console.log('✅ Stream obtained:', stream);
 
     // Convert ReadableStream to AsyncGenerator
     const reader = stream.getReader();
     console.log('📖 Reader created, starting to read...');
-    
+
     let readCount = 0;
     try {
       while (true) {
         const { done, value } = await reader.read();
         readCount++;
-        console.log(`📦 Read ${readCount}:`, { done, valueType: typeof value, valueLength: value?.length, valuePreview: value?.substring(0, 50) });
-        
+        console.log(`📦 Read ${readCount}:`, {
+          done,
+          valueType: typeof value,
+          valueLength: value?.length,
+          valuePreview: value?.substring(0, 50),
+        });
+
         if (done) {
           console.log('🏁 Stream done after', readCount, 'reads');
           break;
         }
-        
+
         if (value) {
           console.log('✅ Yielding chunk:', value.length, 'chars');
           yield value;
