@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "ContentChat AI",
+  "version": "1.0.0",
+  "description": "Privacy-first AI reading assistant - Chat with any content, powered by Chrome Built-in AI",
+  "icons": {
+    "16": "icon/16.png",
+    "48": "icon/48.png",
+    "128": "icon/128.png"
+  },
+  "permissions": ["activeTab", "sidePanel", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/background.ts",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.ts"]
+    }
+  ],
+  "action": {
+    "default_title": "Open ContentChat AI"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/sidepanel/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
