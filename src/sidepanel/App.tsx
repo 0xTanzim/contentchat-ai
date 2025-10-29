@@ -7,17 +7,27 @@ import { ChatView } from './components/ChatView';
 import { ErrorBanner } from './components/ErrorBanner';
 import { HistoryView } from './components/library';
 import { SummaryView } from './components/summary';
+import { useChromeExtension } from './hooks/useChromeExtension';
 import { useAppStore } from './stores/appStore';
 
 function App() {
   const { activeView, setActiveView, aiAvailable, setAiAvailable } =
     useAppStore();
 
+  // ✅ Move useChromeExtension to App level to prevent remounting on tab changes
+  const {
+    currentPage,
+    isLoading: pageLoading,
+    error: pageError,
+    reload,
+  } = useChromeExtension();
+
   useEffect(() => {
     // Check AI availability on mount
     const available = isAIAvailable();
     setAiAvailable(available);
-  }, [setAiAvailable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const views = [
     { id: 'summary' as const, label: 'Summary', icon: FileText },
@@ -71,8 +81,15 @@ function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-hidden">
-          {activeView === 'summary' && <SummaryView />}
-          {activeView === 'chat' && <ChatView />}
+          {activeView === 'summary' && (
+            <SummaryView
+              currentPage={currentPage}
+              isPageLoading={pageLoading}
+              pageError={pageError}
+              onReload={reload}
+            />
+          )}
+          {activeView === 'chat' && <ChatView currentPage={currentPage} />}
           {activeView === 'translate' && (
             <div className="flex h-full items-center justify-center p-6 text-center">
               <div>

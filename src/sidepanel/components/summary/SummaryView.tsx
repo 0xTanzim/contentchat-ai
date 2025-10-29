@@ -7,23 +7,36 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { copyToClipboard } from '@/lib/summary-utils';
+import type { PageContent } from '@/types/summary.types';
 import { FileText, Loader2, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast, Toaster } from 'sonner';
+import { useSummarizer, useTypewriter } from '../../hooks';
 import { useSummaryStore } from '../../stores/summaryStore';
-import { useChromeExtension, useSummarizer, useTypewriter } from '../../hooks';
 import { SummaryActions } from './SummaryActions';
 import { SummaryContent } from './SummaryContent';
 import { SummaryOptions } from './SummaryOptions';
 import { SummaryStats } from './SummaryStats';
 import { SummaryTypeSelector } from './SummaryTypeSelector';
 
+interface SummaryViewProps {
+  currentPage: PageContent | null;
+  isPageLoading: boolean;
+  pageError: string | null;
+  onReload: () => Promise<void>;
+}
+
 /**
  * Main Summary View Component
  * Orchestrates UI using custom hooks for all business logic
  */
-export function SummaryView() {
+export function SummaryView({
+  currentPage,
+  isPageLoading: pageLoading,
+  pageError,
+  onReload: reload,
+}: SummaryViewProps) {
   // Theme
   const { theme, setTheme } = useTheme();
 
@@ -33,9 +46,8 @@ export function SummaryView() {
   // Local UI state (minimal)
   const [showOptions, setShowOptions] = useState(false);
 
-  // Custom hooks (business logic)
-  const { currentPage, isLoading: pageLoading, error: pageError, reload } = useChromeExtension();
-  
+  // Custom hooks (business logic) - currentPage now comes from props
+
   const {
     generate,
     stop,
@@ -47,16 +59,23 @@ export function SummaryView() {
     stats: currentStats,
   } = useSummarizer(currentPage, activeOptions);
 
-  const { displayText: animatedText } = useTypewriter(streamingText, isStreaming);
+  const { displayText: animatedText } = useTypewriter(
+    streamingText,
+    isStreaming
+  );
 
   // Derived state
-  const cachedSummary = currentPage?.url ? getSummary(currentPage.url, activeOptions) : undefined;
-  const displayText = isStreaming ? animatedText : finalResult || cachedSummary?.content;
+  const cachedSummary = currentPage?.url
+    ? getSummary(currentPage.url, activeOptions)
+    : undefined;
+  const displayText = isStreaming
+    ? animatedText
+    : finalResult || cachedSummary?.content;
   const displayStats = currentStats || cachedSummary?.stats;
   const errorMessage = summaryError || pageError;
 
-  // Event handlers (simple delegation)
-  async function handleCopy(text: string) {
+  // ✅ Event handlers with useCallback for stable references (React 19 optimization)
+  const handleCopy = useCallback(async (text: string) => {
     if (!text || text.trim().length === 0) {
       toast.error('Nothing to copy');
       return;
@@ -70,31 +89,34 @@ export function SummaryView() {
     } else {
       toast.error('Failed to copy');
     }
-  }
+  }, []);
 
-  function handleSave() {
+  const handleSave = useCallback(() => {
     toast.success('Saved to library!');
     // Library save is automatic via history service
-  }
+  }, []);
 
-  async function handleShare(text: string) {
-    if (navigator.share) {
-      try {
-        await navigator.share({ text });
-        toast.success('Shared successfully!');
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          toast.error('Failed to share');
+  const handleShare = useCallback(
+    async (text: string) => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ text });
+          toast.success('Shared successfully!');
+        } catch (error) {
+          if ((error as Error).name !== 'AbortError') {
+            toast.error('Failed to share');
+          }
         }
+      } else {
+        await handleCopy(text);
       }
-    } else {
-      await handleCopy(text);
-    }
-  }
+    },
+    [handleCopy]
+  );
 
-  function handleRetry() {
+  const handleRetry = useCallback(() => {
     generate();
-  }
+  }, [generate]);
 
   // Loading state
   if (pageLoading) {
@@ -127,10 +149,10 @@ export function SummaryView() {
       <Toaster position="top-center" richColors />
       <div className="flex h-full flex-col">
         {/* Page Info Header */}
-        <div className="border-b border-border bg-gradient-to-r from-background to-muted/20 p-5">
+        <div className="border-b border-border bg-linear-to-r from-background to-muted/20 p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h2 className="mb-1.5 truncate text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text leading-tight">
+              <h2 className="mb-1.5 truncate text-xl font-bold bg-linear-to-r from-foreground to-foreground/70 bg-clip-text leading-tight">
                 {currentPage.title}
               </h2>
               <p className="truncate text-sm text-muted-foreground font-medium">
@@ -172,7 +194,9 @@ export function SummaryView() {
             onLengthChange={(length) => setActiveOptions({ length })}
             onFormatChange={(format) => setActiveOptions({ format })}
             onContextChange={(context) => setActiveOptions({ context })}
-            onDetailLevelChange={(detailLevel) => setActiveOptions({ detailLevel })}
+            onDetailLevelChange={(detailLevel) =>
+              setActiveOptions({ detailLevel })
+            }
           />
         )}
 

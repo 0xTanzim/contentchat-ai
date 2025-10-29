@@ -39,6 +39,7 @@ export function useSummarizer(
     null
   );
   const activeSummarizerRef = useRef<any | null>(null);
+  const shouldStopRef = useRef(false); // ✅ Ref for shouldStop to avoid recreating generate
 
   /**
    * Clear all state
@@ -67,6 +68,7 @@ export function useSummarizer(
     if (!isStreaming) return;
 
     console.log('⏹️ useSummarizer: Stopping generation');
+    shouldStopRef.current = true; // ✅ Use ref
     setShouldStop(true);
 
     try {
@@ -111,6 +113,7 @@ export function useSummarizer(
       setStreamingText('');
       setFinalResult('');
       setIsStreaming(true);
+      shouldStopRef.current = false; // ✅ Reset ref
       setShouldStop(false);
 
       console.log('🚀 useSummarizer: Starting generation');
@@ -158,7 +161,8 @@ export function useSummarizer(
       // Read stream
       for await (const chunk of stream) {
         // Check if user stopped
-        if (shouldStop) {
+        if (shouldStopRef.current) {
+          // ✅ Use ref for immediate check
           console.log('⏹️ useSummarizer: Breaking loop - user stopped');
           break;
         }
@@ -298,7 +302,7 @@ export function useSummarizer(
         activeSummarizerRef.current = null;
       }
     }
-  }, [currentPage, options, isStreaming, isLoading, shouldStop]);
+  }, [currentPage, options, isStreaming, isLoading]); // ✅ shouldStop removed!
 
   return {
     generate,

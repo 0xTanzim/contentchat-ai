@@ -5,7 +5,7 @@
  */
 
 import type { UseTypewriterReturn } from '@/types/summary.types';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Hook for typewriter animation effect
@@ -22,16 +22,25 @@ export function useTypewriter(
   tickDelay: number = 10
 ): UseTypewriterReturn {
   const [displayText, setDisplayText] = useState('');
+  const currentLengthRef = useRef(0); // ✅ Use ref to avoid dependency cycle
 
   useEffect(() => {
     // If not streaming, show full text immediately
     if (!enabled) {
       setDisplayText(targetText);
+      currentLengthRef.current = targetText.length;
       return;
     }
 
-    const currentLength = displayText.length;
+    const currentLength = currentLengthRef.current;
     const targetLength = targetText.length;
+
+    // Reset if target text changed
+    if (targetLength < currentLength) {
+      currentLengthRef.current = 0;
+      setDisplayText('');
+      return;
+    }
 
     // Already at target length
     if (currentLength >= targetLength) {
@@ -44,11 +53,13 @@ export function useTypewriter(
 
     // Animate
     const timer = setTimeout(() => {
-      setDisplayText(targetText.substring(0, currentLength + charsToAdd));
+      const newLength = currentLength + charsToAdd;
+      currentLengthRef.current = newLength;
+      setDisplayText(targetText.substring(0, newLength));
     }, tickDelay);
 
     return () => clearTimeout(timer);
-  }, [targetText, enabled, displayText, charsPerTick, tickDelay]);
+  }, [targetText, enabled, charsPerTick, tickDelay]); // ✅ displayText removed!
 
   return { displayText };
 }

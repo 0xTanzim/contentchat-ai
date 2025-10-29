@@ -9,7 +9,7 @@ import type {
   PageContent,
   UseChromeExtensionReturn,
 } from '@/types/summary.types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 /**
@@ -20,7 +20,8 @@ export function useChromeExtension(): UseChromeExtensionReturn {
   const [currentPage, setCurrentPage] = useState<PageContent | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previousUrl, setPreviousUrl] = useState<string | null>(null);
+  const previousUrlRef = useRef<string | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   /**
    * Load current page content
@@ -31,12 +32,28 @@ export function useChromeExtension(): UseChromeExtensionReturn {
       setError(null);
 
       const content = await chromeExtensionService.getCurrentPageContent();
+
+      // Check if URL changed
+      const urlChanged =
+        previousUrlRef.current && previousUrlRef.current !== content.url;
+
       setCurrentPage(content);
 
       console.log('✅ useChromeExtension: Page content loaded', {
         title: content.title,
         url: content.url,
       });
+
+      // Show toast if URL changed
+      if (urlChanged) {
+        toast.info('Page changed. Generate a new summary.', {
+          duration: 3000,
+        });
+      }
+
+      // Update previous URL
+      previousUrlRef.current = content.url;
+      isInitialLoadRef.current = false;
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to load page content';
@@ -45,7 +62,7 @@ export function useChromeExtension(): UseChromeExtensionReturn {
       setError(errorMsg);
 
       // Show toast only if not initial load
-      if (currentPage) {
+      if (!isInitialLoadRef.current) {
         toast.error('Failed to load page', {
           description: errorMsg,
         });
@@ -53,14 +70,15 @@ export function useChromeExtension(): UseChromeExtensionReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage]);
+  }, []);
 
   /**
    * Initial load on mount
    */
   useEffect(() => {
     reload();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   /**
    * Listen to content script ready messages
@@ -123,28 +141,6 @@ export function useChromeExtension(): UseChromeExtensionReturn {
 
     return cleanup;
   }, [reload]);
-
-  /**
-   * Detect URL changes and notify
-   */
-  useEffect(() => {
-    if (!currentPage?.url) return;
-
-    // If URL changed, notify user
-    if (previousUrl && previousUrl !== currentPage.url) {
-      console.log('🔄 useChromeExtension: URL changed', {
-        from: previousUrl,
-        to: currentPage.url,
-      });
-
-      toast.info('Page changed. Generate a new summary.', {
-        duration: 3000,
-      });
-    }
-
-    // Update tracked URL
-    setPreviousUrl(currentPage.url);
-  }, [currentPage?.url, previousUrl]);
 
   return {
     currentPage,

@@ -15,6 +15,13 @@ declare global {
     Summarizer?: SummarizerConstructor;
     Translator?: TranslatorConstructor;
     LanguageDetector?: LanguageDetectorConstructor;
+    // Newer window.ai namespace (Chrome 140+)
+    ai?: {
+      languageModel?: LanguageModelConstructor;
+      summarizer?: SummarizerConstructor;
+      translator?: TranslatorConstructor;
+      languageDetector?: LanguageDetectorConstructor;
+    };
   }
 }
 

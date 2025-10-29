@@ -1,216 +1,155 @@
 /**
- * Chat View Component
- * Chat interface for asking questions about the page
+ * Chat View Component (Refactored)
+ * Clean container using hooks and new components
  */
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { promptWithContext } from '@/lib/chrome-ai';
-import { Loader2, MessageCircle, Send, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useAppStore } from '../stores/appStore';
-import { useChatStore } from '../stores/chatStore';
+import { useChatSession } from '@/sidepanel/hooks/useChatSession';
+import { useScrollToBottom } from '@/sidepanel/hooks/useScrollToBottom';
+import type { ChatMode } from '@/types/chat.types';
+import type { PageContent } from '@/types/summary.types';
+import { useCallback, useMemo, useState } from 'react';
+import { ChatHeader } from './chat/ChatHeader';
+import { ChatInput } from './chat/ChatInput';
+import { ChatMessage } from './chat/ChatMessage';
+import { EmptyState } from './chat/EmptyState';
 
-export function ChatView() {
-  const { currentPage, setError } = useAppStore();
-  const { getMessages, addMessage, clearConversation } = useChatStore();
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+interface ChatViewProps {
+  currentPage: PageContent | null;
+}
 
-  const messages = currentPage?.url ? getMessages(currentPage.url) : [];
+export function ChatView({ currentPage }: ChatViewProps) {
+  const [mode, setMode] = useState<ChatMode>('page-context');
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // Chat session
+  const {
+    conversation,
+    sendMessage,
+    stopGeneration,
+    regenerateLastResponse,
+    clearConversation,
+    isStreaming,
+    error,
+    streamingMessage,
+  } = useChatSession(
+    mode,
+    currentPage?.url,
+    currentPage?.title,
+    currentPage?.content
+  );
 
-  function scrollToBottom() {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }
+  // Auto-scroll
+  const { scrollRef } = useScrollToBottom(
+    [conversation?.messages.length, streamingMessage],
+    { smooth: true, enabled: true }
+  );
 
-  async function handleSendMessage() {
-    if (!input.trim() || !currentPage || isLoading) return;
+  // ✅ Memoize copy handler (React 19 optimization)
+  const handleCopy = useCallback((content: string) => {
+    console.log('📋 Copied:', content.substring(0, 50));
+  }, []);
 
-    const userMessage = input.trim();
-    setInput('');
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion: string) => {
+    sendMessage(suggestion);
+  };
 
-    // Add user message
-    addMessage(currentPage.url, {
-      role: 'user',
-      content: userMessage,
-    });
+  // Handle mode change
+  const handleModeChange = (newMode: ChatMode) => {
+    setMode(newMode);
+  };
 
-    try {
-      setIsLoading(true);
-      setError(null);
+  const messages = conversation?.messages || [];
+  const hasMessages = messages.length > 0;
 
-      // Get AI response
-      const response = await promptWithContext(
-        userMessage,
-        currentPage.content
-      );
+  // ✅ Debug: Log messages and streaming state
+  console.log('[DEBUG] 📺 ChatView: Rendering state:', {
+    messagesCount: messages.length,
+    hasStreamingMessage: !!streamingMessage,
+    isStreaming,
+    streamingContent: streamingMessage?.content?.substring(0, 50),
+    lastMessageContent: messages[messages.length - 1]?.content?.substring(0, 50),
+  });
 
-      // Add assistant message
-      addMessage(currentPage.url, {
-        role: 'assistant',
-        content: response,
-      });
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to get response'
-      );
-
-      // Add error message
-      addMessage(currentPage.url, {
-        role: 'assistant',
-        content:
-          'Sorry, I encountered an error processing your request. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  }
-
-  function handleClearChat() {
-    if (currentPage?.url) {
-      clearConversation(currentPage.url);
-    }
-  }
-
-  if (!currentPage) {
-    return (
-      <div className="flex h-full items-center justify-center p-6">
-        <Card className="p-6 text-center">
-          <MessageCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-          <h3 className="mb-2 text-lg font-semibold">No Content Available</h3>
-          <p className="text-sm text-muted-foreground">
-            Navigate to a webpage to start chatting
-          </p>
-        </Card>
-      </div>
-    );
-  }
+  // ✅ Memoize pageInfo object (React 19 optimization)
+  const pageInfo = useMemo(
+    () =>
+      currentPage
+        ? { title: currentPage.title, url: currentPage.url }
+        : undefined,
+    [currentPage?.title, currentPage?.url]
+  );
 
   return (
     <div className="flex h-full flex-col">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold">Chat with Page</h2>
-          <p className="text-sm text-muted-foreground">
-            Ask questions about the content
-          </p>
-        </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={handleClearChat}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      {/* Header */}
+      <ChatHeader
+        mode={mode}
+        onModeChange={handleModeChange}
+        hasMessages={hasMessages}
+        onClear={clearConversation}
+        pageInfo={pageInfo}
+      />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <MessageCircle className="mb-4 h-12 w-12 text-muted-foreground" />
-            <h3 className="mb-2 text-lg font-semibold">Start a Conversation</h3>
-            <p className="mb-4 max-w-sm text-sm text-muted-foreground">
-              Ask questions about the page content and get AI-powered answers
-            </p>
-            <div className="flex flex-col gap-2 text-left">
-              <p className="text-xs text-muted-foreground">Try asking:</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-start"
-                onClick={() => setInput('What are the main points?')}
-              >
-                "What are the main points?"
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-start"
-                onClick={() =>
-                  setInput('Can you explain this in simple terms?')
-                }
-              >
-                "Can you explain this in simple terms?"
-              </Button>
-            </div>
-          </div>
+      {/* Messages Area */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+        {!hasMessages ? (
+          <EmptyState mode={mode} onSuggestionClick={handleSuggestionClick} />
         ) : (
           <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                <Card
-                  className={`max-w-[85%] p-3 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap text-sm">
-                    {message.content}
-                  </p>
-                  <p className="mt-1 text-xs opacity-70">
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </p>
-                </Card>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <Card className="max-w-[85%] bg-muted p-3">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                </Card>
+            {messages.map((message, index) => {
+              // ✅ Compute onRegenerate once per message (React 19 optimization)
+              const isLastAssistantMessage =
+                message.role === 'assistant' && index === messages.length - 1;
+
+              // ✅ FIX: Skip rendering last assistant message if we're streaming
+              // The streamingMessage component will show it instead
+              if (isLastAssistantMessage && isStreaming && message.status === 'streaming') {
+                console.log('[DEBUG] 🚫 ChatView: Skipping last assistant message (streaming)');
+                return null;
+              }
+
+              return (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  onCopy={handleCopy}
+                  onRegenerate={
+                    isLastAssistantMessage && !isStreaming ? regenerateLastResponse : undefined
+                  }
+                />
+              );
+            })}
+
+            {/* Streaming Message - Only shown during active streaming */}
+            {streamingMessage && isStreaming && (
+              <ChatMessage
+                message={streamingMessage}
+                isStreaming={true}
+                streamingText={streamingMessage.content}
+              />
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4">
-        <div className="flex gap-2">
-          <Textarea
-            value={input}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              setInput(e.target.value)
-            }
-            onKeyDown={handleKeyDown}
-            placeholder="Ask a question..."
-            className="min-h-[60px] resize-none"
-            disabled={isLoading}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="h-[60px] w-[60px] shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-      </div>
+      <ChatInput
+        onSend={sendMessage}
+        onStop={stopGeneration}
+        isGenerating={isStreaming}
+        placeholder={
+          mode === 'page-context'
+            ? 'Ask about this page...'
+            : 'Ask me anything...'
+        }
+      />
     </div>
   );
 }
