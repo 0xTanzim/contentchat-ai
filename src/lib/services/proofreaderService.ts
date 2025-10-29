@@ -3,7 +3,7 @@ import {
   createProofreader,
 } from '@/lib/chrome-ai/proofreader';
 import { createLogger } from '@/lib/logger';
-import type { ProofreadResult } from '@/types/chrome-ai';
+import type { Proofreader, ProofreadResult } from '@/types/chrome-ai';
 
 const logger = createLogger('ProofreaderService');
 
@@ -33,9 +33,7 @@ class ProofreaderService implements IProofreaderService {
     this.isInitializing = true;
     try {
       logger.debug('🔧 Initializing proofreader...');
-      this.proofreader = await createProofreader({
-        expectedInputLanguages: ['en'],
-      });
+      this.proofreader = await createProofreader();
       logger.info('✅ Proofreader initialized');
     } catch (error) {
       logger.error('❌ Failed to initialize proofreader:', error);

@@ -100,7 +100,7 @@ export function SummaryContent({
   if (isStreaming) {
     return (
       <div className="space-y-4 animate-in fade-in duration-500">
-        <Card className="p-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-lg">
+        <Card className="p-6 border-2 border-primary/20 bg-linear-to-br from-primary/5 to-transparent shadow-lg">
           <div className="flex items-center gap-3 mb-4 pb-3 border-b border-primary/10">
             <div className="relative">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -139,7 +139,7 @@ export function SummaryContent({
   // Display Result
   if (displayText) {
     return (
-      <Card className="p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary/10 bg-gradient-to-br from-background to-muted/5">
+      <Card className="p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary/10 bg-linear-to-br from-background to-muted/5">
         <div className="prose prose-xl dark:prose-invert max-w-none leading-loose [&>ul]:text-lg [&>ol]:text-lg [&>p]:text-lg [&>h1]:text-3xl [&>h2]:text-2xl [&>h3]:text-xl [&>li]:mb-2">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {displayText}
@@ -153,10 +153,10 @@ export function SummaryContent({
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 animate-in fade-in-50 zoom-in-95 duration-700">
       <div className="relative mb-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-3xl opacity-20 animate-pulse" />
+        <div className="absolute inset-0 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 blur-3xl opacity-20 animate-pulse" />
         <Sparkles className="relative h-16 w-16 text-primary animate-bounce" />
       </div>
-      <h3 className="mb-2 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+      <h3 className="mb-2 text-xl font-bold bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
         Generate Summary
       </h3>
       <p className="mb-6 text-center text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -169,7 +169,7 @@ export function SummaryContent({
       <Button
         onClick={onGenerate}
         size="lg"
-        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        className="bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
       >
         <Sparkles className="mr-2 h-5 w-5 animate-pulse" />
         Generate Summary

@@ -1,5 +1,9 @@
 import { createLogger } from '@/lib/logger';
-import type { ProofreaderOptions, ProofreadResult } from '@/types/chrome-ai';
+import type {
+  Proofreader,
+  ProofreaderOptions,
+  ProofreadResult,
+} from '@/types/chrome-ai';
 
 const logger = createLogger('ChromeAI:Proofreader');
 
@@ -65,7 +69,6 @@ export async function createProofreader(
 
     // Create proofreader with download progress monitor
     const proofreader = await (self as any).Proofreader.create({
-      expectedInputLanguages: options?.expectedInputLanguages || ['en'],
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
           logger.info(

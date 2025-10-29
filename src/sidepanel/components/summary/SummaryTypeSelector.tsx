@@ -70,7 +70,7 @@ export function SummaryTypeSelector({
                 whitespace-nowrap transition-all duration-200 relative overflow-hidden
                 ${
                   isActive
-                    ? `bg-gradient-to-r ${type.color} text-white shadow-lg scale-105 font-semibold`
+                    ? `bg-linear-to-r ${type.color} text-white shadow-lg scale-105 font-semibold`
                     : 'hover:bg-muted hover:scale-102'
                 }
               `}

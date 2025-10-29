@@ -107,6 +107,22 @@ interface LanguageDetectorConstructor {
   create(): Promise<LanguageDetector>;
 }
 
+// Proofreader API - Chrome 141+
+interface ProofreaderConstructor {
+  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
+  create(options?: ProofreaderOptions): Promise<Proofreader>;
+}
+
+interface ProofreaderOptions {
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
+}
+
+interface Proofreader {
+  proofread(text: string): Promise<ProofreadResult>;
+  destroy(): void;
+}
+
 interface SummarizerOptions {
   type?: 'key-points' | 'tldr' | 'teaser' | 'headline';
   format?: 'plain-text' | 'markdown';

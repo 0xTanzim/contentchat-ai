@@ -50,7 +50,7 @@ export function SummaryOptions({
   onContextChange,
 }: SummaryOptionsProps) {
   return (
-    <div className="border-b border-border bg-gradient-to-b from-muted/50 to-background p-4 space-y-4 animate-in slide-in-from-top duration-300">
+    <div className="border-b border-border bg-linear-to-b from-muted/50 to-background p-4 space-y-4 animate-in slide-in-from-top duration-300">
       {/* Detail Level - NEW! */}
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
@@ -77,7 +77,7 @@ export function SummaryOptions({
                   text-xs capitalize transition-all duration-200 flex flex-col items-center py-3
                   ${
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-md'
+                      ? 'bg-linear-to-r from-indigo-500 to-blue-500 text-white shadow-md'
                       : 'hover:border-primary/50'
                   }
                 `}
@@ -108,7 +108,7 @@ export function SummaryOptions({
                     flex-1 text-xs capitalize transition-all duration-200
                     ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                        ? 'bg-linear-to-r from-blue-500 to-purple-500 text-white shadow-md'
                         : 'hover:border-primary/50'
                     }
                   `}
@@ -136,7 +136,7 @@ export function SummaryOptions({
                     flex-1 text-xs capitalize transition-all duration-200
                     ${
                       isActive
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md'
+                        ? 'bg-linear-to-r from-green-500 to-emerald-500 text-white shadow-md'
                         : 'hover:border-primary/50'
                     }
                   `}
@@ -166,7 +166,7 @@ export function SummaryOptions({
                   text-xs transition-all duration-200
                   ${
                     isActive
-                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md'
+                      ? 'bg-linear-to-r from-orange-500 to-red-500 text-white shadow-md'
                       : 'hover:border-primary/50'
                   }
                 `}

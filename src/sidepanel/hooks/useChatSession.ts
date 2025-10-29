@@ -18,7 +18,6 @@
  */
 
 import { createLogger } from '@/lib/logger';
-import { conversationService } from '@/sidepanel/services/conversationService';
 import { useChatStore } from '@/sidepanel/stores/chatStore';
 import type { ChatMode, UseChatSessionReturn } from '@/types/chat.types';
 import { useCallback, useMemo } from 'react';
@@ -41,8 +40,7 @@ export function useChatSession(
   pageContent?: string
 ): UseChatSessionReturn {
   // Store actions (only what we need)
-  const { deleteMessage, clearConversation, updateConversation } =
-    useChatStore();
+  const { deleteMessage, clearConversation } = useChatStore();
 
   // 🎨 PATTERN 1: Factory Pattern for Conversation Lifecycle
   // Handles: Finding existing conversations, creating new ones, managing IDs
@@ -130,33 +128,6 @@ export function useChatSession(
     // Resend user message
     await sendMessage(lastUserMessage.content);
   }, [conversation, conversationId, handleDeleteMessage, sendMessage]);
-
-  /**
-   * Export conversation as markdown
-   */
-  const exportConversation = useCallback(() => {
-    if (!conversation) return '';
-    return conversationService.exportConversation(conversation);
-  }, [conversation]);
-
-  /**
-   * Update conversation metadata
-   */
-  const updateMetadata = useCallback(
-    (updates: { title?: string; isFavorite?: boolean }) => {
-      if (!conversationId) return;
-      updateConversation(conversationId, updates);
-    },
-    [conversationId, updateConversation]
-  );
-
-  /**
-   * Derive messages from conversation (memoized)
-   */
-  const messages = useMemo(
-    () => conversation?.messages || [],
-    [conversation?.messages]
-  );
 
   /**
    * Create streaming message object for display

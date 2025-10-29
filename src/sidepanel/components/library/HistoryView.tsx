@@ -46,7 +46,7 @@ export function HistoryView() {
       <div className="flex h-full items-center justify-center p-6">
         <div className="text-center max-w-md space-y-4">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-3xl opacity-20 animate-pulse" />
+            <div className="absolute inset-0 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 blur-3xl opacity-20 animate-pulse" />
             <HistoryIcon className="relative mx-auto h-16 w-16 text-muted-foreground" />
           </div>
           <h3 className="text-xl font-semibold">No History Yet</h3>
@@ -64,7 +64,7 @@ export function HistoryView() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-border bg-gradient-to-r from-background to-muted/20 p-5">
+      <div className="border-b border-border bg-linear-to-r from-background to-muted/20 p-5">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold">Summary History</h2>

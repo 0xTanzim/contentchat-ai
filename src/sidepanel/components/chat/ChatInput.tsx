@@ -66,7 +66,7 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="min-h-[44px] max-h-[200px] resize-none bg-background"
+          className="min-h-11 max-h-[200px] resize-none bg-background"
           rows={1}
         />
 
