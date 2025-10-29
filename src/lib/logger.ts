@@ -176,7 +176,7 @@ export function createLogger(context: string): BrowserLogger {
   if (typeof window !== 'undefined') {
     return new BrowserLogger(context);
   }
-  // @ts-ignore - pino types don't match perfectly
+  // @ts-expect-error - pino types don't match perfectly
   return logger.child({ context });
 }
 

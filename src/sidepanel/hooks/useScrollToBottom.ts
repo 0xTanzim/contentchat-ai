@@ -80,7 +80,8 @@ export function useScrollToBottom<T extends HTMLElement = HTMLDivElement>(
     if (enabled) {
       scrollToBottom();
     }
-  }, dependencies);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...dependencies, enabled]);
 
   return {
     containerRef,

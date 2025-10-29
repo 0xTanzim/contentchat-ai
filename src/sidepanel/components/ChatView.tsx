@@ -83,7 +83,7 @@ export function ChatView({ currentPage }: ChatViewProps) {
       currentPage
         ? { title: currentPage.title, url: currentPage.url }
         : undefined,
-    [currentPage?.title, currentPage?.url]
+    [currentPage]
   );
 
   return (

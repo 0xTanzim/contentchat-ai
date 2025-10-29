@@ -197,6 +197,11 @@ export interface IConversationService {
    * Format message content for display
    */
   formatMessageContent(content: string): string;
+
+  /**
+   * Export conversation as markdown
+   */
+  exportConversation(conversation: Conversation): string;
 }
 
 /**

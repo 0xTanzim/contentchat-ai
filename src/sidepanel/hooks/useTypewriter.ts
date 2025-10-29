@@ -21,14 +21,20 @@ export function useTypewriter(
   charsPerTick: number = 3,
   tickDelay: number = 10
 ): UseTypewriterReturn {
-  const [displayText, setDisplayText] = useState('');
-  const currentLengthRef = useRef(0); // ✅ Use ref to avoid dependency cycle
+  // Lazy initialization based on enabled state
+  const [displayText, setDisplayText] = useState(() =>
+    enabled ? '' : targetText
+  );
+  const currentLengthRef = useRef(enabled ? 0 : targetText.length);
 
   useEffect(() => {
     // If not streaming, show full text immediately
     if (!enabled) {
-      setDisplayText(targetText);
-      currentLengthRef.current = targetText.length;
+      // Use queueMicrotask to defer state update
+      queueMicrotask(() => {
+        setDisplayText(targetText);
+        currentLengthRef.current = targetText.length;
+      });
       return;
     }
 
@@ -38,13 +44,12 @@ export function useTypewriter(
     // Reset if target text changed
     if (targetLength < currentLength) {
       currentLengthRef.current = 0;
-      setDisplayText('');
+      queueMicrotask(() => setDisplayText(''));
       return;
     }
 
     // Already at target length
     if (currentLength >= targetLength) {
-      setDisplayText(targetText);
       return;
     }
 
@@ -59,7 +64,7 @@ export function useTypewriter(
     }, tickDelay);
 
     return () => clearTimeout(timer);
-  }, [targetText, enabled, charsPerTick, tickDelay]); // ✅ displayText removed!
+  }, [targetText, enabled, charsPerTick, tickDelay]);
 
   return { displayText };
 }

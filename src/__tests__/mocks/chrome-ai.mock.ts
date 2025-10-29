@@ -3,7 +3,6 @@
  * Reusable mock configurations for different test scenarios
  * Updated for Chrome 138+ global API pattern
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { vi } from 'vitest';
 

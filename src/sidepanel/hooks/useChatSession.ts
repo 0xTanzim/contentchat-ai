@@ -163,15 +163,15 @@ export function useChatSession(
    */
   const streamingMessage = useMemo(() => {
     if (!isGenerating || !streamingText) return null;
-    const date = new Date();
     return {
       id: 'streaming-temp',
       role: 'assistant' as const,
       content: streamingText,
-      timestamp: date,
+      timestamp: 0, // Temporary streaming message, timestamp not critical
       status: 'streaming' as const,
+      mode,
     };
-  }, [isGenerating, streamingText]);
+  }, [isGenerating, streamingText, mode]);
 
   // 🎨 Return Facade Interface (Clean, Simple API)
   return {
@@ -187,10 +187,5 @@ export function useChatSession(
     stopGeneration,
     regenerateLastResponse: regenerateResponse,
     clearConversation: clearMessages,
-
-    // Additional methods (not in interface but useful)
-    deleteMessage: handleDeleteMessage,
-    updateMetadata,
-    exportConversation,
   };
 }

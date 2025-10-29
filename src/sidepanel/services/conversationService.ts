@@ -261,6 +261,28 @@ class ConversationService implements IConversationService {
       errors,
     };
   }
+
+  /**
+   * Export conversation as markdown
+   */
+  exportConversation(conversation: Conversation): string {
+    const { title, messages, createdAt, mode } = conversation;
+    const date = new Date(createdAt).toLocaleString();
+
+    let markdown = `# ${title}\n\n`;
+    markdown += `**Created:** ${date}  \n`;
+    markdown += `**Mode:** ${mode}  \n\n`;
+    markdown += `---\n\n`;
+
+    for (const message of messages) {
+      const role = message.role === 'user' ? '👤 You' : '🤖 AI';
+      const timestamp = new Date(message.timestamp).toLocaleTimeString();
+      markdown += `### ${role} (${timestamp})\n\n`;
+      markdown += `${message.content}\n\n`;
+    }
+
+    return markdown;
+  }
 }
 
 // Export singleton instance

@@ -27,37 +27,45 @@ export function useMessageStreaming(
   speed: StreamSpeed = 'medium',
   enabled: boolean = true
 ): UseMessageStreamingReturn {
-  const [displayedText, setDisplayedText] = useState('');
+  // Lazy initialization based on enabled state
+  const [displayedText, setDisplayedText] = useState(() =>
+    enabled ? '' : fullText
+  );
   const [isStreaming, setIsStreaming] = useState(false);
 
-  const currentIndexRef = useRef(0);
-  const timerRef = useRef<number | null>(null);
+  const currentIndexRef = useRef(enabled ? 0 : fullText.length);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  /**
-   * Start or reset streaming
-   */
   useEffect(() => {
+    // If not streaming, show full text immediately
     if (!enabled) {
-      setDisplayedText(fullText);
-      setIsStreaming(false);
-      currentIndexRef.current = fullText.length;
+      // Use queueMicrotask to defer state update
+      queueMicrotask(() => {
+        setDisplayedText(fullText);
+        setIsStreaming(false);
+        currentIndexRef.current = fullText.length;
+      });
       return;
     }
 
     // Reset if fullText is shorter (new text)
     if (fullText.length < currentIndexRef.current) {
       currentIndexRef.current = 0;
-      setDisplayedText('');
+      queueMicrotask(() => setDisplayedText(''));
     }
 
     // If text is complete, stop
     if (currentIndexRef.current >= fullText.length) {
-      setIsStreaming(false);
+      if (isStreaming) {
+        queueMicrotask(() => setIsStreaming(false));
+      }
       return;
     }
 
     // Start streaming
-    setIsStreaming(true);
+    if (!isStreaming) {
+      queueMicrotask(() => setIsStreaming(true));
+    }
 
     const delay = SPEED_DELAYS[speed];
 
@@ -84,9 +92,7 @@ export function useMessageStreaming(
         timerRef.current = null;
       }
     };
-  }, [fullText, speed, enabled]); // ✅ displayedText.length removed!
-
-  // Note: skipToEnd function removed as it's not used in the interface
+  }, [fullText, speed, enabled, isStreaming]);
 
   return {
     displayText: displayedText,

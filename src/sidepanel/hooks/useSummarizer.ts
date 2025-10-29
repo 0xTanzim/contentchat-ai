@@ -227,7 +227,7 @@ export function useSummarizer(
       setIsStreaming(false);
 
       // Don't show error if user stopped
-      if (shouldStop) {
+      if (shouldStopRef.current) {
         logger.info('Generation stopped by user, not an error');
         return;
       }

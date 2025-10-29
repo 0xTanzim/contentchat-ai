@@ -23,7 +23,7 @@ function extractPageContent(): {
     const url = window.location.href;
 
     // Extract main content (prioritize article, main, or body)
-    let contentElement =
+    const contentElement =
       document.querySelector('article') ||
       document.querySelector('main') ||
       document.body;
