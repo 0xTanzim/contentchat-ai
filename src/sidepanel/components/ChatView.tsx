@@ -8,7 +8,7 @@ import { useChatSession } from '@/sidepanel/hooks/useChatSession';
 import { useScrollToBottom } from '@/sidepanel/hooks/useScrollToBottom';
 import type { ChatMode } from '@/types/chat.types';
 import type { PageContent } from '@/types/summary.types';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChatHeader } from './chat/ChatHeader';
 import { ChatInput } from './chat/ChatInput';
 import { ChatMessage } from './chat/ChatMessage';
@@ -19,9 +19,15 @@ const logger = createLogger('ChatView');
 
 interface ChatViewProps {
   currentPage: PageContent | null;
+  selectedTextContext?: string | null;
+  onContextUsed?: () => void;
 }
 
-export function ChatView({ currentPage }: ChatViewProps) {
+export function ChatView({
+  currentPage,
+  selectedTextContext,
+  onContextUsed,
+}: ChatViewProps) {
   const [mode, setMode] = useState<ChatMode>('page-context');
 
   // Chat session
@@ -40,6 +46,25 @@ export function ChatView({ currentPage }: ChatViewProps) {
     currentPage?.title,
     currentPage?.content
   );
+
+  // ✅ Handle selected text context from "Ask AI About This"
+  useEffect(() => {
+    if (selectedTextContext) {
+      logger.info('📝 Selected text context received', {
+        length: selectedTextContext.length,
+        preview: selectedTextContext.substring(0, 100),
+      });
+
+      // Send the selected text as initial message
+      const prompt = `I have selected this text:\n\n"${selectedTextContext}"\n\nCan you help me understand it?`;
+      sendMessage(prompt);
+
+      // Clear context after using
+      if (onContextUsed) {
+        onContextUsed();
+      }
+    }
+  }, [selectedTextContext, sendMessage, onContextUsed]); // Include sendMessage in deps
 
   // Auto-scroll
   const { scrollRef } = useScrollToBottom(

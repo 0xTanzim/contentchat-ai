@@ -1,12 +1,15 @@
 import { Button } from '@/components/ui/button';
 import { isAIAvailable } from '@/lib/chrome-ai';
+import { createLogger } from '@/lib/logger';
 import { FileText, Languages, Library, MessageCircle } from 'lucide-react';
 import { ThemeProvider } from 'next-themes';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { ChatView } from './components/ChatView';
 import { ErrorBanner } from './components/ErrorBanner';
 import { useChromeExtension } from './hooks/useChromeExtension';
 import { useAppStore } from './stores/appStore';
+
+const logger = createLogger('App');
 
 // ✅ Only lazy load views that don't need to preserve state
 const SummaryView = lazy(() =>
@@ -20,6 +23,11 @@ function App() {
   const { activeView, setActiveView, aiAvailable, setAiAvailable } =
     useAppStore();
 
+  // ✅ State for selected text context (from "Ask AI About This")
+  const [selectedTextContext, setSelectedTextContext] = useState<string | null>(
+    null
+  );
+
   // ✅ Move useChromeExtension to App level to prevent remounting on tab changes
   const {
     currentPage,
@@ -32,6 +40,41 @@ function App() {
     // Check AI availability on mount
     const available = isAIAvailable();
     setAiAvailable(available);
+
+    // ✅ Listen for "Ask AI About This" messages from background
+    const handleMessage = (
+      message: { type: string; text?: string },
+      sender: chrome.runtime.MessageSender,
+      sendResponse: (response?: unknown) => void
+    ) => {
+      logger.info('📬 Message received:', message);
+
+      if (message.type === 'ASK_ABOUT_SELECTION') {
+        logger.info('🎯 Ask AI About This triggered', {
+          textLength: message.text?.length,
+        });
+
+        // Switch to chat view
+        setActiveView('chat');
+
+        // Set selected text as context
+        if (message.text) {
+          setSelectedTextContext(message.text);
+          logger.info('✅ Context set, switching to chat');
+        }
+
+        sendResponse({ success: true });
+      }
+
+      return true; // Keep channel open for async
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    // Cleanup
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -95,7 +138,11 @@ function App() {
               flexDirection: 'column',
             }}
           >
-            <ChatView currentPage={currentPage} />
+            <ChatView
+              currentPage={currentPage}
+              selectedTextContext={selectedTextContext}
+              onContextUsed={() => setSelectedTextContext(null)}
+            />
           </div>
 
           {/* Other views with lazy loading */}
