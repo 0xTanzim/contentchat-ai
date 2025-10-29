@@ -9,6 +9,8 @@ declare global {
   const Summarizer: SummarizerConstructor;
   const Translator: TranslatorConstructor;
   const LanguageDetector: LanguageDetectorConstructor;
+  const Proofreader: ProofreaderConstructor;
+  const Rewriter: RewriterConstructor;
 
   interface Window {
     LanguageModel?: LanguageModelConstructor;
@@ -21,6 +23,8 @@ declare global {
       summarizer?: SummarizerConstructor;
       translator?: TranslatorConstructor;
       languageDetector?: LanguageDetectorConstructor;
+      proofreader?: ProofreaderConstructor;
+      rewriter?: RewriterConstructor;
     };
   }
 }
@@ -147,6 +151,79 @@ interface LanguageDetector {
 interface LanguageDetectionResult {
   detectedLanguage: string;
   confidence: number;
+}
+
+export type {
+  DownloadMonitor,
+  DownloadProgressEvent,
+  LanguageDetectionResult,
+  LanguageDetector,
+  LanguageDetectorConstructor,
+  LanguageModel,
+  LanguageModelConstructor,
+  LanguageModelCreateOptions,
+  PromptOptions,
+  ProofreadResult,
+  Proofreader,
+  ProofreaderConstructor,
+  ProofreaderCorrection,
+  ProofreaderOptions,
+  RewriteFormat,
+  RewriteLength,
+  RewriteTone,
+  Rewriter,
+  RewriterConstructor,
+  RewriterOptions,
+  Summarizer,
+  SummarizerConstructor,
+  SummarizerOptions,
+  Translator,
+  TranslatorConstructor,
+  TranslatorOptions,
+};
+interface ProofreadResult {
+  corrected: string;
+  corrections: ProofreaderCorrection[];
+}
+
+interface ProofreaderCorrection {
+  startIndex: number;
+  endIndex: number;
+  correctionType: 'grammar' | 'spelling' | 'punctuation';
+  originalText: string;
+  correctedText: string;
+  explanation?: string;
+}
+
+// Rewriter API - Chrome 137+
+interface RewriterConstructor {
+  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
+  create(options?: RewriterOptions): Promise<Rewriter>;
+}
+
+export type RewriteTone = 'more-formal' | 'more-casual' | 'as-is';
+export type RewriteFormat = 'as-is' | 'markdown' | 'plain-text';
+export type RewriteLength = 'shorter' | 'as-is' | 'longer';
+
+interface RewriterOptions {
+  tone?: RewriteTone;
+  format?: RewriteFormat;
+  length?: RewriteLength;
+  sharedContext?: string;
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+  outputLanguage?: string;
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
+}
+
+interface Rewriter {
+  rewrite(text: string, options?: { context?: string }): Promise<string>;
+  rewriteStreaming(
+    text: string,
+    options?: { context?: string }
+  ): ReadableStream<string>;
+  destroy(): void;
 }
 
 export type {

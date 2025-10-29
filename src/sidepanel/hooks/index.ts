@@ -4,5 +4,7 @@
  */
 
 export { useChromeExtension } from './useChromeExtension';
+export { useProofreader } from './useProofreader';
+export { useRewriter } from './useRewriter';
 export { useSummarizer } from './useSummarizer';
 export { useTypewriter } from './useTypewriter';

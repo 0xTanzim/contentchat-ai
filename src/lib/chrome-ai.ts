@@ -14,6 +14,10 @@ import type {
   TranslatorOptions,
 } from '@/types/chrome-ai';
 
+// Export new AI wrappers
+export * from './chrome-ai/proofreader';
+export * from './chrome-ai/rewriter';
+
 /**
  * Check if Chrome Built-in AI is available
  * According to official docs, check for global constructors

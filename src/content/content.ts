@@ -1,6 +1,8 @@
 // Content Script for ContentChat AI
 // Extracts page content and communicates with background/sidepanel
 
+import './writing-assistant';
+
 console.log(
   '✅ ContentChat AI: Content script loaded on',
   window.location.href
