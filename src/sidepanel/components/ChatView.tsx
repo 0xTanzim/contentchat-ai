@@ -3,6 +3,7 @@
  * Clean container using hooks and new components
  */
 
+import { createLogger } from '@/lib/logger';
 import { useChatSession } from '@/sidepanel/hooks/useChatSession';
 import { useScrollToBottom } from '@/sidepanel/hooks/useScrollToBottom';
 import type { ChatMode } from '@/types/chat.types';
@@ -12,6 +13,9 @@ import { ChatHeader } from './chat/ChatHeader';
 import { ChatInput } from './chat/ChatInput';
 import { ChatMessage } from './chat/ChatMessage';
 import { EmptyState } from './chat/EmptyState';
+
+// Create logger for this component
+const logger = createLogger('ChatView');
 
 interface ChatViewProps {
   currentPage: PageContent | null;
@@ -45,7 +49,7 @@ export function ChatView({ currentPage }: ChatViewProps) {
 
   // ✅ Memoize copy handler (React 19 optimization)
   const handleCopy = useCallback((content: string) => {
-    console.log('📋 Copied:', content.substring(0, 50));
+    logger.info('📋 Copied:', { preview: content.substring(0, 50) });
   }, []);
 
   // Handle suggestion click
@@ -62,12 +66,15 @@ export function ChatView({ currentPage }: ChatViewProps) {
   const hasMessages = messages.length > 0;
 
   // ✅ Debug: Log messages and streaming state
-  console.log('[DEBUG] 📺 ChatView: Rendering state:', {
+  logger.debug('📺 ChatView: Rendering state', {
     messagesCount: messages.length,
     hasStreamingMessage: !!streamingMessage,
     isStreaming,
     streamingContent: streamingMessage?.content?.substring(0, 50),
-    lastMessageContent: messages[messages.length - 1]?.content?.substring(0, 50),
+    lastMessageContent: messages[messages.length - 1]?.content?.substring(
+      0,
+      50
+    ),
   });
 
   // ✅ Memoize pageInfo object (React 19 optimization)
@@ -103,8 +110,14 @@ export function ChatView({ currentPage }: ChatViewProps) {
 
               // ✅ FIX: Skip rendering last assistant message if we're streaming
               // The streamingMessage component will show it instead
-              if (isLastAssistantMessage && isStreaming && message.status === 'streaming') {
-                console.log('[DEBUG] 🚫 ChatView: Skipping last assistant message (streaming)');
+              if (
+                isLastAssistantMessage &&
+                isStreaming &&
+                message.status === 'streaming'
+              ) {
+                logger.debug(
+                  '🚫 ChatView: Skipping last assistant message (streaming)'
+                );
                 return null;
               }
 
@@ -114,7 +127,9 @@ export function ChatView({ currentPage }: ChatViewProps) {
                   message={message}
                   onCopy={handleCopy}
                   onRegenerate={
-                    isLastAssistantMessage && !isStreaming ? regenerateLastResponse : undefined
+                    isLastAssistantMessage && !isStreaming
+                      ? regenerateLastResponse
+                      : undefined
                   }
                 />
               );

@@ -43,6 +43,7 @@ interface ChatState {
     url?: string,
     pageTitle?: string
   ) => string;
+  startNewChat: (mode: ChatMode, url?: string, pageTitle?: string) => string; // ✅ NEW
   getConversation: (id: string) => Conversation | undefined;
   getAllConversations: () => Conversation[];
   updateConversation: (id: string, updates: Partial<Conversation>) => void;
@@ -175,6 +176,13 @@ export const useChatStore = create<ChatState>()(
           },
         }));
 
+        return id;
+      },
+
+      // ✅ NEW: Start fresh chat conversation
+      startNewChat: (mode, url, pageTitle) => {
+        const id = get().createConversation(mode, url, pageTitle);
+        set({ activeConversationId: id });
         return id;
       },
 
@@ -354,12 +362,11 @@ export const useChatStore = create<ChatState>()(
         }
 
         // For personal mode, find or create the personal conversation
+        // ✅ FIX: Use Object.values directly instead of getAllConversations()
         if (mode === 'personal') {
-          const existing = state
-            .getAllConversations()
-            .find(
-              (conv) => conv.mode === 'personal' && conv.url === 'personal'
-            );
+          const existing = Object.values(state.conversations).find(
+            (conv) => conv.mode === 'personal' && conv.url === 'personal'
+          );
           if (existing) return existing;
         }
 
@@ -394,7 +401,7 @@ export const useChatStore = create<ChatState>()(
         settings: state.settings,
       }),
       // Migration from v1 to v2
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: any) => {
         // Check if this is legacy format
         if (
           persistedState.conversations &&

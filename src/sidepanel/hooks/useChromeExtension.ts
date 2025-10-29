@@ -4,6 +4,7 @@
  * Encapsulates all Chrome API logic
  */
 
+import { createLogger } from '@/lib/logger';
 import { chromeExtensionService } from '@/lib/services/chromeExtensionService';
 import type {
   PageContent,
@@ -11,6 +12,9 @@ import type {
 } from '@/types/summary.types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+// Create logger for this hook
+const logger = createLogger('useChromeExtension');
 
 /**
  * Hook for Chrome extension interactions

@@ -20,7 +20,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 // Message handling
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message) => {
   console.log('Background received message:', message);
 
   // Handle different message types

@@ -5,6 +5,7 @@
  */
 
 import { summarizeStreaming } from '@/lib/chrome-ai';
+import { createLogger } from '@/lib/logger';
 import { generateSummaryStats } from '@/lib/summary-utils';
 import type {
   ErrorType,
@@ -12,6 +13,8 @@ import type {
   StreamingResult,
   SummaryOptions,
 } from '@/types/summary.types';
+
+const logger = createLogger('SummaryService');
 
 /**
  * Detail level instructions mapping
@@ -193,15 +196,23 @@ class SummaryService implements ISummaryService {
     reader: ReadableStreamDefaultReader<string> | null,
     summarizer: any
   ): Promise<void> {
-    console.log('⏹️ Summary Service: Stopping generation');
+    logger.info('⏹️ Summary Service: Stopping generation');
 
     // Cancel the reader
     if (reader) {
       try {
         await reader.cancel('User stopped generation');
-        console.log('✅ Reader canceled successfully');
+        logger.info('✅ Reader canceled successfully');
       } catch (error) {
-        console.error('❌ Failed to cancel reader:', error);
+        logger.error('❌ Failed to cancel reader:', {
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : error,
+        });
       }
     }
 
@@ -209,11 +220,21 @@ class SummaryService implements ISummaryService {
     if (summarizer) {
       try {
         summarizer.destroy();
-        console.log('✅ Summarizer destroyed successfully');
+        logger.info('✅ Summarizer destroyed successfully');
       } catch (error) {
-        console.error('❌ Failed to destroy summarizer:', error);
+        logger.error('❌ Failed to destroy summarizer:', {
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : error,
+        });
       }
     }
+
+    logger.info('✅ Stop generation complete - ready for new summary');
   }
 
   /**

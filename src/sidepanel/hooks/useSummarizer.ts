@@ -4,6 +4,7 @@
  * Handles all generation logic, state management, and abortion
  */
 
+import { createLogger } from '@/lib/logger';
 import { historyService } from '@/lib/services/historyService';
 import { summaryService } from '@/lib/services/summaryService';
 import type {
@@ -14,6 +15,9 @@ import type {
 } from '@/types/summary.types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+// Create logger for this hook
+const logger = createLogger('useSummarizer');
 
 /**
  * Hook for AI summary generation
@@ -67,7 +71,7 @@ export function useSummarizer(
   const stop = useCallback(async () => {
     if (!isStreaming) return;
 
-    console.log('⏹️ useSummarizer: Stopping generation');
+    logger.info('⏹️ Stopping generation');
     shouldStopRef.current = true; // ✅ Use ref
     setShouldStop(true);
 
@@ -87,7 +91,7 @@ export function useSummarizer(
         description: 'LLM generation aborted successfully',
       });
     } catch (err) {
-      console.error('❌ useSummarizer: Failed to stop', err);
+      logger.error('❌ Failed to stop', { error: err });
     }
   }, [isStreaming]);
 
@@ -150,7 +154,7 @@ export function useSummarizer(
       activeReaderRef.current = reader;
       activeSummarizerRef.current = summarizer;
 
-      console.log('📡 useSummarizer: Stream created, reading chunks');
+      logger.debug('📡 Stream created, reading chunks');
 
       // Small delay to ensure UI renders Stop button
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -183,7 +187,7 @@ export function useSummarizer(
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
-      console.log('🏁 useSummarizer: Streaming complete', {
+      logger.debug('🏁 Streaming complete', {
         chunks: chunkCount,
         textLength: fullText.length,
       });
@@ -219,12 +223,12 @@ export function useSummarizer(
         description: `${summaryStats.summaryWordCount} words · ${summaryStats.compressionRatio}% compressed`,
       });
     } catch (err) {
-      console.error('❌ useSummarizer: Generation failed', err);
+      logger.error('❌ Generation failed', { error: err });
       setIsStreaming(false);
 
       // Don't show error if user stopped
       if (shouldStop) {
-        console.log('Generation stopped by user, not an error');
+        logger.info('Generation stopped by user, not an error');
         return;
       }
 
@@ -288,7 +292,7 @@ export function useSummarizer(
         try {
           activeReaderRef.current.releaseLock();
         } catch (err) {
-          console.warn('Reader already released:', err);
+          logger.warn('Reader already released', { error: err });
         }
         activeReaderRef.current = null;
       }
@@ -297,7 +301,7 @@ export function useSummarizer(
         try {
           activeSummarizerRef.current.destroy();
         } catch (err) {
-          console.warn('Summarizer already destroyed:', err);
+          logger.warn('Summarizer already destroyed', { error: err });
         }
         activeSummarizerRef.current = null;
       }

@@ -2,13 +2,19 @@ import { Button } from '@/components/ui/button';
 import { isAIAvailable } from '@/lib/chrome-ai';
 import { FileText, Languages, Library, MessageCircle } from 'lucide-react';
 import { ThemeProvider } from 'next-themes';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { ChatView } from './components/ChatView';
 import { ErrorBanner } from './components/ErrorBanner';
-import { HistoryView } from './components/library';
-import { SummaryView } from './components/summary';
 import { useChromeExtension } from './hooks/useChromeExtension';
 import { useAppStore } from './stores/appStore';
+
+// ✅ Only lazy load views that don't need to preserve state
+const SummaryView = lazy(() =>
+  import('./components/summary').then((m) => ({ default: m.SummaryView }))
+);
+const HistoryView = lazy(() =>
+  import('./components/library').then((m) => ({ default: m.HistoryView }))
+);
 
 function App() {
   const { activeView, setActiveView, aiAvailable, setAiAvailable } =
@@ -79,29 +85,52 @@ function App() {
           </div>
         </nav>
 
-        {/* Main Content */}
+        {/* Main Content - ChatView always mounted to preserve state */}
         <main className="flex-1 overflow-hidden">
-          {activeView === 'summary' && (
-            <SummaryView
-              currentPage={currentPage}
-              isPageLoading={pageLoading}
-              pageError={pageError}
-              onReload={reload}
-            />
-          )}
-          {activeView === 'chat' && <ChatView currentPage={currentPage} />}
-          {activeView === 'translate' && (
-            <div className="flex h-full items-center justify-center p-6 text-center">
-              <div>
-                <Languages className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-lg font-semibold">Coming Soon</h3>
-                <p className="text-sm text-muted-foreground">
-                  Translation feature will be available soon
-                </p>
+          {/* ChatView - Always mounted, toggled with CSS */}
+          <div
+            style={{
+              display: activeView === 'chat' ? 'flex' : 'none',
+              height: '100%',
+              flexDirection: 'column',
+            }}
+          >
+            <ChatView currentPage={currentPage} />
+          </div>
+
+          {/* Other views with lazy loading */}
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center">
+                <div className="animate-pulse text-muted-foreground">
+                  Loading...
+                </div>
               </div>
-            </div>
-          )}
-          {activeView === 'library' && <HistoryView />}
+            }
+          >
+            {activeView === 'summary' && (
+              <SummaryView
+                currentPage={currentPage}
+                isPageLoading={pageLoading}
+                pageError={pageError}
+                onReload={reload}
+              />
+            )}
+
+            {activeView === 'translate' && (
+              <div className="flex h-full items-center justify-center p-6 text-center">
+                <div>
+                  <Languages className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-lg font-semibold">Coming Soon</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Translation feature will be available soon
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {activeView === 'library' && <HistoryView />}
+          </Suspense>
         </main>
       </div>
     </ThemeProvider>

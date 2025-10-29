@@ -4,6 +4,7 @@
  * Supports streaming responses with character-by-character delivery
  */
 
+import { createLogger } from '@/lib/logger';
 import type {
   ChatMode,
   ChatSettings,
@@ -12,6 +13,9 @@ import type {
   Message,
 } from '@/types/chat.types';
 import type { LanguageModel } from '@/types/chrome-ai';
+
+// Create logger for this service
+const logger = createLogger('ChatService');
 
 /**
  * System prompts for different modes
@@ -38,20 +42,33 @@ class ChatService implements IChatService {
    */
   private async initializeModel(settings: ChatSettings): Promise<void> {
     try {
-      console.log(
-        '[DEBUG] 🤖 ChatService: Initializing language model...',
-        settings
-      );
+      logger.debug('🤖 Initializing language model...', { settings });
 
-      if (!self.LanguageModel) {
-        throw new Error(
-          'Chrome Built-in AI not available. Update to Chrome 138+'
-        );
+      // Check for LanguageModel in both global and window.ai namespaces
+      const LanguageModelAPI =
+        typeof LanguageModel !== 'undefined'
+          ? LanguageModel
+          : typeof window !== 'undefined' && window.ai?.languageModel;
+
+      if (!LanguageModelAPI) {
+        const errorMsg =
+          'Chrome Built-in AI not available. Please:\n' +
+          '1. Update to Chrome 140+ Canary\n' +
+          '2. Enable chrome://flags/#prompt-api-for-gemini-nano\n' +
+          '3. Enable chrome://flags/#optimization-guide-on-device-model\n' +
+          '4. Restart Chrome';
+        logger.error('❌ LanguageModel API not found', {
+          hasGlobal: typeof LanguageModel !== 'undefined',
+          hasWindowAI: typeof window !== 'undefined' && !!window.ai,
+          hasLanguageModel:
+            typeof window !== 'undefined' && !!window.ai?.languageModel,
+        });
+        throw new Error(errorMsg);
       }
 
       // Check availability
-      const availability = await LanguageModel.availability();
-      console.log('[DEBUG] 📊 ChatService: Model availability:', availability);
+      const availability = await LanguageModelAPI.availability();
+      logger.debug('📊 Model availability:', { availability });
 
       if (availability === 'unavailable') {
         throw new Error('Language Model not available on this device');
@@ -59,25 +76,29 @@ class ChatService implements IChatService {
 
       if (availability === 'after-download') {
         throw new Error(
-          'Language Model needs to be downloaded. Please wait...'
+          'Language Model needs to be downloaded. Please wait and try again in a few minutes...'
         );
       }
 
       // Create model with settings and output language (required for Chrome AI)
-      this.languageModel = await LanguageModel.create({
+      this.languageModel = await LanguageModelAPI.create({
         temperature: settings.temperature || 0.7,
         topK: 40, // Default topK value
         expectedOutputs: [{ type: 'text', languages: ['en'] }], // ✅ Specify English output
       });
 
-      console.log(
-        '[DEBUG] ✅ ChatService: Language model initialized successfully'
-      );
+      logger.info('✅ Language model initialized successfully');
     } catch (error) {
-      console.error(
-        '[DEBUG] ❌ ChatService: Failed to initialize language model:',
-        error
-      );
+      logger.error('❌ Failed to initialize language model:', {
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              }
+            : error,
+      });
       throw error;
     }
   }
@@ -92,7 +113,7 @@ class ChatService implements IChatService {
     settings?: ChatSettings
   ): Promise<ChatStreamingResult> {
     try {
-      console.log('[DEBUG] 🚀 ChatService: Starting streaming generation...', {
+      logger.debug('🚀 ChatService: Starting streaming generation...', {
         messageCount: messages.length,
         mode,
         hasPageContent: !!pageContent,
@@ -100,8 +121,8 @@ class ChatService implements IChatService {
 
       // Initialize model if needed
       if (!this.languageModel) {
-        console.log(
-          '[DEBUG] 🔄 ChatService: Model not initialized, creating new session...'
+        logger.info(
+          '🔄 ChatService: Model not initialized, creating new session...'
         );
         await this.initializeModel(
           settings || {
@@ -110,6 +131,7 @@ class ChatService implements IChatService {
             maxTokens: 2000,
           }
         );
+        logger.info('✅ ChatService: New session ready');
       }
 
       if (!this.languageModel) {
@@ -118,38 +140,36 @@ class ChatService implements IChatService {
 
       // Build context
       const context = this.buildContext(messages, mode, pageContent);
-      console.log(
-        '[DEBUG] 📝 ChatService: Context built, length:',
-        context.length
-      );
+      logger.debug('📝 ChatService: Context built, length:', context.length);
 
       // Create abort controller
       this.abortController = new AbortController();
-      console.log('[DEBUG] 🛑 ChatService: Abort controller created');
+      logger.debug('🛑 Abort controller created');
 
       // Create stream from language model
-      console.log('[DEBUG] 🌊 ChatService: Calling promptStreaming...');
+      logger.debug('🌊 Calling promptStreaming...', {
+        contextLength: context.length,
+        modelExists: !!this.languageModel,
+        hasSignal: !!this.abortController.signal,
+      });
+
       const stream = this.languageModel.promptStreaming(context, {
         signal: this.abortController.signal,
       });
 
-      console.log(
-        '[DEBUG] 📡 ChatService: Stream created, locked:',
-        stream.locked
-      );
+      logger.debug('📡 ChatService: Stream created, locked:', stream.locked);
 
       // ✅ Check if stream is locked before getting reader
       if (stream.locked) {
-        console.error('[DEBUG] ❌ ChatService: Stream is already locked!');
+        logger.error('❌ ChatService: Stream is already locked!');
         throw new Error('Stream is already locked. Cannot create reader.');
       }
 
-      console.log('[DEBUG] 🔓 ChatService: Getting reader from stream...');
+      logger.debug('🔓 Getting reader from stream...');
       const reader = stream.getReader();
-      console.log(
-        '[DEBUG] ✅ ChatService: Reader created successfully, stream now locked:',
-        stream.locked
-      );
+      logger.info('✅ Reader created successfully', {
+        streamLocked: stream.locked,
+      });
 
       return {
         stream,
@@ -157,17 +177,30 @@ class ChatService implements IChatService {
         model: this.languageModel,
       };
     } catch (error: any) {
-      console.error(
-        '[DEBUG] ❌ ChatService: Error in generateResponseStreaming:',
-        error
-      );
+      logger.error('❌ ChatService: Error in generateResponseStreaming:', {
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              }
+            : error,
+        modelInitialized: !!this.languageModel,
+        hasAbortController: !!this.abortController,
+      });
 
       if (error.name === 'AbortError') {
         throw new Error('Generation stopped by user');
       }
 
-      console.error('Failed to generate response:', error);
-      throw new Error(error.message || 'Failed to generate response');
+      const errorMessage =
+        error.message || error.toString() || 'Failed to generate response';
+      logger.error('Failed to generate response:', {
+        message: errorMessage,
+        errorType: error.name || typeof error,
+      });
+      throw new Error(errorMessage);
     }
   }
 
@@ -176,21 +209,67 @@ class ChatService implements IChatService {
    */
   async stopGeneration(
     reader: ReadableStreamDefaultReader<string> | null,
-    _model: any
+    model: any
   ): Promise<void> {
+    logger.debug('🛑 ChatService: Stopping generation...');
+
     try {
       // Cancel reader if provided
       if (reader) {
-        await reader.cancel();
+        logger.debug('📖 Canceling reader...');
+        await reader.cancel('User stopped generation');
+        logger.debug('✅ ChatService: Reader canceled');
+      }
+
+      // Destroy model instance (but don't destroy the service's model)
+      if (model && model !== this.languageModel) {
+        logger.debug('🗑️ Destroying model instance...');
+
+        try {
+          model.destroy();
+          logger.debug('✅ ChatService: Model destroyed');
+        } catch (error) {
+          logger.error('⚠️ ChatService: Failed to destroy model:', error);
+        }
+      }
+
+      // ✅ FIX: Clear the language model reference to force reinitialization
+      // This prevents "model execution session has been destroyed" error
+      if (this.languageModel) {
+        logger.debug(
+          '🔄 Clearing language model reference for reinitialization...'
+        );
+        try {
+          this.languageModel.destroy();
+        } catch (error) {
+          logger.warn('⚠️ Error destroying language model:', error);
+        }
+        this.languageModel = null;
+        logger.debug('✅ Language model cleared');
       }
 
       // Abort controller
       if (this.abortController) {
+        logger.debug('🚫 ChatService: Aborting controller...');
         this.abortController.abort();
         this.abortController = null;
+        logger.debug('✅ ChatService: Controller aborted');
       }
+
+      logger.info(
+        '✅ ChatService: Stop generation complete - ready for new message'
+      );
     } catch (error) {
-      console.error('Error stopping generation:', error);
+      logger.error('❌ ChatService: Error stopping generation:', {
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              }
+            : error,
+      });
     }
   }
 
@@ -291,7 +370,7 @@ class ChatService implements IChatService {
       try {
         await this.languageModel.destroy();
       } catch (error) {
-        console.error('Failed to cleanup language model:', error);
+        logger.error('Failed to cleanup language model:', error);
       }
       this.languageModel = null;
     }

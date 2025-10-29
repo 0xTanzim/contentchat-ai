@@ -56,7 +56,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-t border-gray-200 p-4">
+    <div className="border-t border-border bg-background p-4">
       <div className="flex gap-2 items-end">
         {/* Textarea */}
         <Textarea
@@ -66,7 +66,7 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="min-h-[44px] max-h-[200px] resize-none"
+          className="min-h-[44px] max-h-[200px] resize-none bg-background"
           rows={1}
         />
 
@@ -76,28 +76,49 @@ export function ChatInput({
             onClick={onStop}
             variant="destructive"
             size="icon"
-            className="flex-shrink-0"
+            className="shrink-0 h-12 w-12 shadow-xl shadow-red-500/50 dark:shadow-red-500/30 animate-pulse bg-linear-to-br from-red-600 to-red-500 dark:from-red-500 dark:to-red-400 hover:from-red-700 hover:to-red-600 border-2 border-red-400 dark:border-red-300 scale-110"
+            title="Stop generating (Click to stop)"
           >
-            <Square className="h-4 w-4" />
+            <Square className="h-5 w-5 fill-current animate-pulse" />
           </Button>
         ) : (
           <Button
             onClick={handleSubmit}
             disabled={!value.trim() || disabled}
             size="icon"
-            className="flex-shrink-0"
+            className="shrink-0 h-11 w-11 shadow-sm hover:shadow-md transition-all hover:scale-105"
+            title="Send message"
           >
             <Send className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      {/* Hint */}
-      <p className="text-xs text-gray-500 mt-2">
-        Press <kbd className="px-1 py-0.5 bg-gray-100 rounded">Enter</kbd> to
-        send, <kbd className="px-1 py-0.5 bg-gray-100 rounded">Shift+Enter</kbd>{' '}
-        for new line
-      </p>
+      {/* Hint / Status */}
+      {isGenerating ? (
+        <div className="mt-2 flex items-center gap-2 text-xs font-medium">
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-red-500 dark:bg-red-400 rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-red-500 dark:bg-red-400 rounded-full animate-pulse delay-75" />
+            <span className="w-2 h-2 bg-red-500 dark:bg-red-400 rounded-full animate-pulse delay-150" />
+          </div>
+          <span className="text-red-600 dark:text-red-400 animate-pulse">
+            AI is thinking... Click ⬛ to stop
+          </span>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+          <span>Press</span>
+          <kbd className="px-1.5 py-0.5 bg-muted dark:bg-muted/60 rounded text-xs font-mono border border-border">
+            Enter
+          </kbd>
+          <span>to send,</span>
+          <kbd className="px-1.5 py-0.5 bg-muted dark:bg-muted/60 rounded text-xs font-mono border border-border">
+            Shift+Enter
+          </kbd>
+          <span>for new line</span>
+        </p>
+      )}
     </div>
   );
 }

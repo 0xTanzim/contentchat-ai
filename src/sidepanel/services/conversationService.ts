@@ -9,6 +9,11 @@ import type {
   Message,
 } from '@/types/chat.types';
 
+import { createLogger } from '@/lib/logger';
+
+// Create logger for this service
+const logger = createLogger('ConversationService');
+
 /**
  * Conversation Service Implementation
  */

@@ -4,6 +4,7 @@
  */
 
 import { Card } from '@/components/ui/card';
+import { createLogger } from '@/lib/logger';
 import { MessageActions } from '@/sidepanel/components/chat/MessageActions';
 import type { ChatMessageProps } from '@/types/chat.types';
 import 'highlight.js/styles/github-dark.css';
@@ -12,6 +13,9 @@ import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
+
+// Create logger for this component
+const logger = createLogger('ChatMessage');
 
 export const ChatMessage = memo(function ChatMessage({
   message,
@@ -28,7 +32,7 @@ export const ChatMessage = memo(function ChatMessage({
     : message.content;
 
   // ✅ Debug: Log what's being rendered
-  console.log('[DEBUG] 💬 ChatMessage: Rendering:', {
+  logger.debug('💬 Rendering message:', {
     messageId: message.id,
     role: message.role,
     isStreaming,

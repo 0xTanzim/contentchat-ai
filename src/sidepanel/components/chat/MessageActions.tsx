@@ -4,9 +4,13 @@
  */
 
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
 import type { MessageActionsProps } from '@/types/chat.types';
 import { Check, Copy, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+
+// Create logger for this component
+const logger = createLogger('MessageActions');
 
 export function MessageActions({
   message,
@@ -24,7 +28,15 @@ export function MessageActions({
 
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('❌ Failed to copy text:', {
+        error:
+          err instanceof Error
+            ? {
+                name: err.name,
+                message: err.message,
+              }
+            : err,
+      });
     }
   };
 
