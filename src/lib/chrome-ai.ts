@@ -13,6 +13,9 @@ import type {
   Translator,
   TranslatorOptions,
 } from '@/types/chrome-ai';
+import { createLogger } from './logger';
+
+const logger = createLogger('ChromeAI');
 
 // Export new AI wrappers
 export * from './chrome-ai/proofreader';
@@ -65,7 +68,7 @@ export async function checkCapability(
     if (status === 'after-download') return 'after-download';
     return 'no';
   } catch (error) {
-    console.error(`Failed to check ${api} capability:`, error);
+    logger.error(`Failed to check ${api} capability:`, error);
     return 'no';
   }
 }
@@ -103,7 +106,7 @@ export async function createSummarizer(
     const summarizer = await (self as any).Summarizer.create({
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
-          console.log(
+          logger.info(
             `Summarizer model: Downloaded ${(e.loaded * 100).toFixed(1)}%`
           );
         });
@@ -111,11 +114,13 @@ export async function createSummarizer(
       ...options,
     });
 
-    console.log('✅ Summarizer created successfully:', summarizer);
+    logger.debug('Summarizer created successfully');
     return summarizer;
   } catch (error) {
-    console.error('Failed to create summarizer:', error);
-    throw error;
+    logger.error('Failed to create summarizer:', error);
+    throw new Error(
+      'Failed to initialize AI summarizer. Please check Chrome AI settings at chrome://flags/#optimization-guide-on-device-model and try again.'
+    );
   }
 }
 
@@ -162,7 +167,7 @@ export async function summarizeStreaming(
   reader: ReadableStreamDefaultReader<string>;
   summarizer: Summarizer;
 }> {
-  console.log('🔧 Creating summarizer for streaming...');
+  logger.debug('Creating summarizer for streaming');
   const summarizer = await createSummarizer(options);
 
   if (!summarizer) {
@@ -171,19 +176,19 @@ export async function summarizeStreaming(
 
   // Truncate if too long
   const truncatedText = text.length > 50000 ? text.substring(0, 50000) : text;
-  console.log('📏 Text length:', truncatedText.length);
+  logger.debug('Text length:', truncatedText.length);
 
   // Get ReadableStream from API
-  console.log('🌊 Calling summarizeStreaming API...');
+  logger.debug('Calling summarizeStreaming API');
   const readableStream = context
     ? summarizer.summarizeStreaming(truncatedText, { context })
     : summarizer.summarizeStreaming(truncatedText);
 
-  console.log('✅ Stream obtained:', readableStream);
+  logger.debug('Stream obtained');
 
   // Get reader
   const reader = readableStream.getReader();
-  console.log('📖 Reader created');
+  logger.debug('Reader created');
 
   // Create async generator
   async function* generateChunks(): AsyncGenerator<string, void, unknown> {
@@ -192,27 +197,25 @@ export async function summarizeStreaming(
       while (true) {
         const { done, value } = await reader.read();
         readCount++;
-        console.log(`📦 Read ${readCount}:`, {
+        logger.debug(`Read chunk ${readCount}:`, {
           done,
-          valueType: typeof value,
           valueLength: value?.length,
-          valuePreview: value?.substring(0, 50),
         });
 
         if (done) {
-          console.log('🏁 Stream done after', readCount, 'reads');
+          logger.debug('Stream complete after', readCount, 'reads');
           break;
         }
 
         if (value) {
-          console.log('✅ Yielding chunk:', value.length, 'chars');
+          logger.debug('Yielding chunk:', value.length, 'chars');
           yield value;
         } else {
-          console.warn('⚠️ Empty value received');
+          logger.warn('Empty value received');
         }
       }
     } catch (error) {
-      console.error('Stream reading error:', error);
+      logger.error('Stream reading error:', error);
       throw error;
     }
   }

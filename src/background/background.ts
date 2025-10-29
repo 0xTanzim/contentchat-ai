@@ -1,7 +1,11 @@
 // Background Service Worker for ContentChat AI
 // Handles extension lifecycle and messaging
 
-console.log('ContentChat AI: Background service worker started');
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('Background');
+
+logger.info('Background service worker started');
 
 /**
  * Create context menus for writing assistance
@@ -77,14 +81,14 @@ function createContextMenus() {
       contexts: ['selection'],
     });
 
-    console.log('✅ Context menus created');
+    logger.debug('Context menus created');
   });
 }
 
 // Extension installation
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('ContentChat AI: Extension installed');
+    logger.info('Extension installed');
 
     // Set default side panel behavior
     chrome.sidePanel
@@ -92,7 +96,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         openPanelOnActionClick: true,
       })
       .catch((error) => {
-        console.error('Failed to set panel behavior:', error);
+        logger.error('Failed to set panel behavior:', error);
       });
   }
 
@@ -102,7 +106,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Context menu click handler
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  console.log('Context menu clicked:', info.menuItemId);
+  logger.debug('Context menu clicked:', info.menuItemId);
 
   if (!tab?.id) return;
 
@@ -157,7 +161,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // Message handling
 chrome.runtime.onMessage.addListener((message) => {
-  console.log('Background received message:', message);
+  logger.debug('Background received message:', message);
 
   // Handle different message types
   if (message.type === 'GET_PAGE_CONTENT') {
@@ -170,7 +174,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // Extension icon click
 chrome.action.onClicked.addListener((tab) => {
-  console.log('Extension icon clicked on tab:', tab.id);
+  logger.debug('Extension icon clicked on tab:', tab.id);
 
   // Open side panel for the current tab
   if (tab.id) {

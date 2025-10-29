@@ -4,6 +4,8 @@
   "name": "ContentChat AI",
   "version": "1.0.0",
   "description": "Privacy-first AI reading assistant - Chat with any content, powered by Chrome Built-in AI",
+  "author": "Tanzim Hossain (@0xtanzim)",
+  "homepage_url": "https://github.com/0xtanzim/contentchat-ai",
   "icons": {
     "16": "icon/16.svg",
     "48": "icon/48.svg",

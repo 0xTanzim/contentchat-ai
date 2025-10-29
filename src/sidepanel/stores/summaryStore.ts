@@ -3,8 +3,11 @@
  * Handles different summary types, options, caching, and stats
  */
 
+import { createLogger } from '@/lib/logger';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+
+const logger = createLogger('SummaryStore');
 
 export type SummaryType = 'key-points' | 'tldr' | 'teaser' | 'headline';
 export type SummaryLength = 'short' | 'medium' | 'long';

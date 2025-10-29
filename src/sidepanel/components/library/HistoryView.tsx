@@ -110,7 +110,7 @@ export function HistoryView() {
                           </p>
                         </div>
                         <Badge variant="outline" className="shrink-0">
-                          {formatSummaryTypeLabel(summary.options.type)}
+                          {formatSummaryTypeLabel(summary.options.type, summary.options.length)}
                         </Badge>
                       </div>
 

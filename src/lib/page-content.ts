@@ -3,6 +3,10 @@
  * Handles communication with content script to get page data
  */
 
+import { createLogger } from './logger';
+
+const logger = createLogger('PageContent');
+
 export interface PageContent {
   title: string;
   url: string;
@@ -109,7 +113,7 @@ export async function getCurrentPageContent(): Promise<PageContent> {
 
     return response as PageContent;
   } catch (error) {
-    console.error('Failed to get page content:', error);
+    logger.error('Failed to get page content:', error);
 
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
 

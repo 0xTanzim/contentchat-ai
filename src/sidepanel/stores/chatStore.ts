@@ -4,6 +4,7 @@
  * Supports page-context and personal chat modes
  */
 
+import { createLogger } from '@/lib/logger';
 import type {
   ChatMode,
   ChatSettings,
@@ -13,6 +14,8 @@ import type {
 } from '@/types/chat.types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+
+const logger = createLogger('ChatStore');
 
 /**
  * Legacy message format (for migration)

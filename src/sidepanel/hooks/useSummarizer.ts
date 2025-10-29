@@ -120,7 +120,7 @@ export function useSummarizer(
       shouldStopRef.current = false; // ✅ Reset ref
       setShouldStop(false);
 
-      console.log('🚀 useSummarizer: Starting generation');
+      logger.debug('Starting summary generation');
 
       // Validate content first
       const validation = summaryService.validateContent(currentPage.content);
@@ -167,7 +167,7 @@ export function useSummarizer(
         // Check if user stopped
         if (shouldStopRef.current) {
           // ✅ Use ref for immediate check
-          console.log('⏹️ useSummarizer: Breaking loop - user stopped');
+          logger.debug('Aborting generation - user requested stop');
           break;
         }
 

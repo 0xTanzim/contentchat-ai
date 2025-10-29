@@ -4,12 +4,15 @@
  * No React dependencies - pure Chrome API logic
  */
 
+import { createLogger } from '@/lib/logger';
 import { getCurrentPageContent } from '@/lib/page-content';
 import type {
   ChromeMessage,
   IChromeExtensionService,
   PageContent,
 } from '@/types/summary.types';
+
+const logger = createLogger('ChromeExtensionService');
 
 /**
  * Chrome Extension Service Implementation
@@ -20,10 +23,10 @@ class ChromeExtensionService implements IChromeExtensionService {
    */
   async getCurrentPageContent(): Promise<PageContent> {
     try {
-      console.log('📡 Chrome Service: Loading page content');
+      logger.debug('Loading page content');
       const content = await getCurrentPageContent();
 
-      console.log('✅ Chrome Service: Content loaded', {
+      logger.debug('Content loaded', {
         title: content.title,
         url: content.url,
         contentLength: content.content.length,
@@ -31,7 +34,7 @@ class ChromeExtensionService implements IChromeExtensionService {
 
       return content;
     } catch (error) {
-      console.error('❌ Chrome Service: Failed to load content', error);
+      logger.error('Failed to load content:', error);
 
       const errorMsg =
         error instanceof Error ? error.message : 'Failed to load page content';
@@ -53,13 +56,13 @@ class ChromeExtensionService implements IChromeExtensionService {
   listenToTabUpdates(
     callback: Parameters<typeof chrome.tabs.onUpdated.addListener>[0]
   ): () => void {
-    console.log('👂 Chrome Service: Listening to tab updates');
+    logger.debug('Listening to tab updates');
 
     chrome.tabs.onUpdated.addListener(callback);
 
     // Return cleanup function
     return () => {
-      console.log('🔇 Chrome Service: Stopped listening to tab updates');
+      logger.debug('Stopped listening to tab updates');
       chrome.tabs.onUpdated.removeListener(callback);
     };
   }
@@ -70,13 +73,13 @@ class ChromeExtensionService implements IChromeExtensionService {
   listenToTabActivation(
     callback: (activeInfo: { tabId: number; windowId: number }) => void
   ): () => void {
-    console.log('👂 Chrome Service: Listening to tab activation');
+    logger.debug('Listening to tab activation');
 
     chrome.tabs.onActivated.addListener(callback);
 
     // Return cleanup function
     return () => {
-      console.log('🔇 Chrome Service: Stopped listening to tab activation');
+      logger.debug('Stopped listening to tab activation');
       chrome.tabs.onActivated.removeListener(callback);
     };
   }
@@ -91,13 +94,13 @@ class ChromeExtensionService implements IChromeExtensionService {
       sendResponse: (response?: any) => void
     ) => void
   ): () => void {
-    console.log('👂 Chrome Service: Listening to runtime messages');
+    logger.debug('Listening to runtime messages');
 
     chrome.runtime.onMessage.addListener(callback);
 
     // Return cleanup function
     return () => {
-      console.log('🔇 Chrome Service: Stopped listening to messages');
+      logger.debug('Stopped listening to messages');
       chrome.runtime.onMessage.removeListener(callback);
     };
   }
@@ -107,11 +110,11 @@ class ChromeExtensionService implements IChromeExtensionService {
    */
   async openTab(url: string): Promise<void> {
     try {
-      console.log('🔗 Chrome Service: Opening tab', url);
+      logger.debug('Opening tab:', url);
       await chrome.tabs.create({ url });
-      console.log('✅ Chrome Service: Tab opened successfully');
+      logger.debug('Tab opened successfully');
     } catch (error) {
-      console.error('❌ Chrome Service: Failed to open tab', error);
+      logger.error('Failed to open tab:', error);
       throw new Error('Failed to open tab');
     }
   }

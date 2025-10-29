@@ -1,12 +1,12 @@
 // Content Script for ContentChat AI
 // Extracts page content and communicates with background/sidepanel
 
+import { createLogger } from '@/lib/logger';
 import './writing-assistant';
 
-console.log(
-  '✅ ContentChat AI: Content script loaded on',
-  window.location.href
-);
+const logger = createLogger('ContentScript');
+
+logger.info('Content script loaded on', window.location.href);
 
 /**
  * Extract text content from the current page
@@ -60,7 +60,7 @@ function extractPageContent(): {
     // Try to detect language from html lang attribute
     const language = document.documentElement.lang || 'en';
 
-    console.log('✅ ContentChat AI: Extracted page content', {
+    logger.debug('Extracted page content', {
       title,
       url,
       contentLength: content.length,
@@ -74,22 +74,22 @@ function extractPageContent(): {
       language,
     };
   } catch (error) {
-    console.error('❌ ContentChat AI: Failed to extract content', error);
+    logger.error('Failed to extract content:', error);
     throw error;
   }
 }
 
 // Listen for messages from sidepanel/background
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('📨 ContentChat AI: Received message', message.type);
+  logger.debug('Received message:', message.type);
 
   if (message.type === 'GET_PAGE_CONTENT') {
     try {
       const pageData = extractPageContent();
       sendResponse(pageData);
-      console.log('✅ ContentChat AI: Sent page content response');
+      logger.debug('Sent page content response');
     } catch (error) {
-      console.error('❌ ContentChat AI: Error extracting content', error);
+      logger.error('Error extracting content:', error);
       sendResponse({
         error:
           error instanceof Error ? error.message : 'Failed to extract content',
@@ -106,8 +106,8 @@ try {
     type: 'CONTENT_SCRIPT_READY',
     url: window.location.href,
   });
-  console.log('✅ ContentChat AI: Notified ready');
+  logger.info('Content script ready');
 } catch (error) {
   // Extension context may be invalidated, ignore
-  console.warn('⚠️ ContentChat AI: Could not send ready message', error);
+  logger.warn('Could not send ready message:', error);
 }

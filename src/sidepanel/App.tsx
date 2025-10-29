@@ -1,3 +1,4 @@
+import { SuspenseFallback } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { isAIAvailable } from '@/lib/chrome-ai';
 import { createLogger } from '@/lib/logger';
@@ -146,15 +147,7 @@ function App() {
           </div>
 
           {/* Other views with lazy loading */}
-          <Suspense
-            fallback={
-              <div className="flex h-full items-center justify-center">
-                <div className="animate-pulse text-muted-foreground">
-                  Loading...
-                </div>
-              </div>
-            }
-          >
+          <Suspense fallback={<SuspenseFallback />}>
             {activeView === 'summary' && (
               <SummaryView
                 currentPage={currentPage}

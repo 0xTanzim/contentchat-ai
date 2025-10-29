@@ -119,18 +119,17 @@ class SummaryService implements ISummaryService {
       this.truncateContent(content);
 
     if (wasTruncated) {
-      console.warn(
-        `⚠️ Content truncated from ${content.length} to ${MAX_CONTENT_LENGTH} characters`
+      logger.warn(
+        `Content truncated from ${content.length} to ${MAX_CONTENT_LENGTH} characters`
       );
     }
 
     // Build context
     const aiContext = context || this.buildContext(options);
 
-    console.log('🚀 Summary Service: Starting generation', {
+    logger.debug('Starting generation', {
       contentLength: processedContent.length,
       options,
-      context: aiContext,
       wasTruncated,
     });
 
@@ -142,11 +141,11 @@ class SummaryService implements ISummaryService {
         aiContext
       );
 
-      console.log('✅ Summary Service: Stream created successfully');
+      logger.debug('Stream created successfully');
 
       return result;
     } catch (error) {
-      console.error('❌ Summary Service: Generation failed', error);
+      logger.error('Generation failed:', error);
 
       // Transform Chrome AI errors to user-friendly messages
       const errorMessage =
