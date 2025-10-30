@@ -105,7 +105,14 @@ export const ChatHeader = memo(function ChatHeader({
       {/* Page Context Indicator */}
       {mode === 'page-context' && pageInfo && (
         <div className="px-4 pb-3 pt-1">
-          <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 rounded-md px-3 py-2 border border-blue-200 dark:border-blue-800">
+          <div
+            className="flex items-center gap-2 text-xs
+      text-blue-700 dark:text-blue-200
+      bg-blue-50/80 dark:bg-blue-950/40
+      border border-blue-300 dark:border-blue-800
+      rounded-md px-3 py-2 shadow-sm
+    "
+          >
             <Globe className="h-3 w-3 text-blue-600 dark:text-blue-400 animate-pulse" />
             <span className="font-semibold">Chatting about:</span>
             <span className="truncate font-medium">{pageInfo.title}</span>

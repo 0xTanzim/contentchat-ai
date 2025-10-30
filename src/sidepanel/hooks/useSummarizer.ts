@@ -133,9 +133,12 @@ export function useSummarizer(
         currentPage.content
       );
       if (wasTruncated) {
-        toast.warning('Long content detected', {
-          description: 'Truncated to 50,000 characters for processing.',
-          duration: 4000,
+        const wordCount = currentPage.content.split(/\s+/).length;
+        const truncatedWords = content.split(/\s+/).length;
+
+        toast.warning('Large article detected', {
+          description: `Truncated from ${wordCount.toLocaleString()} to ${truncatedWords.toLocaleString()} words due to AI API limits.\n\n💡 For better results, try summarizing specific sections by selecting text.`,
+          duration: 6000,
         });
       }
 

@@ -4,7 +4,7 @@
  * No React dependencies - testable and reusable
  */
 
-import { summarizeStreaming } from '@/lib/chrome-ai';
+import { summarizeLargeContent, summarizeStreaming } from '@/lib/chrome-ai';
 import { createLogger } from '@/lib/logger';
 import { generateSummaryStats } from '@/lib/summary-utils';
 import type {
@@ -29,10 +29,18 @@ const DETAIL_INSTRUCTIONS: Record<string, string> = {
 
 /**
  * Content validation constants
+ * Note: NO hard limits! Chrome recommends "summary of summaries" for large content
+ * Reference: https://developer.chrome.com/docs/ai/scale-summarization
  */
 const MIN_CONTENT_LENGTH = 100; // characters
 const MIN_WORD_COUNT = 20; // words
-const MAX_CONTENT_LENGTH = 50000; // characters
+
+/**
+ * Threshold for using recursive "summary of summaries" approach
+ * If content > LARGE_CONTENT_THRESHOLD, use recursive chunking instead of simple truncation
+ * Chrome successfully tested 110,030 characters (IRC RFC) with this technique
+ */
+const LARGE_CONTENT_THRESHOLD = 10000; // ~2500 words, beyond this use recursive approach
 
 /**
  * Summary Service Implementation
@@ -70,19 +78,44 @@ class SummaryService implements ISummaryService {
   }
 
   /**
-   * Truncate long content
+   * Truncate long content intelligently (DEPRECATED)
+   * Only used for small content that doesn't need recursive summarization
+   * For large content, use generateSummaryLarge() instead
    */
   truncateContent(
     content: string,
-    maxLength: number = MAX_CONTENT_LENGTH
+    maxLength: number = 10000
   ): { content: string; wasTruncated: boolean } {
+    // For backward compatibility only - prefer recursive approach for large content
     if (content.length <= maxLength) {
       return { content, wasTruncated: false };
     }
 
+    let truncated = content.substring(0, maxLength);
+    const wasTruncated = true;
+
+    // Try to cut at paragraph boundary
+    const lastParagraph = truncated.lastIndexOf('\n\n');
+
+    if (lastParagraph > truncated.length * 0.8) {
+      // If we found a paragraph break in the last 20%, use it
+      truncated = truncated.substring(0, lastParagraph);
+    } else {
+      // Otherwise, try to cut at sentence boundary
+      const lastSentence = Math.max(
+        truncated.lastIndexOf('. '),
+        truncated.lastIndexOf('! '),
+        truncated.lastIndexOf('? ')
+      );
+
+      if (lastSentence > truncated.length * 0.8) {
+        truncated = truncated.substring(0, lastSentence + 1);
+      }
+    }
+
     return {
-      content: content.substring(0, maxLength),
-      wasTruncated: true,
+      content: truncated,
+      wasTruncated,
     };
   }
 
@@ -102,6 +135,7 @@ class SummaryService implements ISummaryService {
 
   /**
    * Generate summary with streaming
+   * For large content (>10k chars), automatically uses recursive "summary of summaries"
    */
   async generateSummaryStreaming(
     content: string,
@@ -114,13 +148,68 @@ class SummaryService implements ISummaryService {
       throw new Error(validation.error);
     }
 
-    // Truncate if needed
+    // For large content, use recursive approach instead of truncation
+    // Chrome's official docs recommend "summary of summaries" for large text
+    // Reference: https://developer.chrome.com/docs/ai/scale-summarization
+    if (content.length > LARGE_CONTENT_THRESHOLD) {
+      logger.info(
+        `Large content detected (${content.length} chars), using recursive summarization`
+      );
+
+      // Convert to non-streaming by using recursive approach
+      // TODO: Implement streaming for recursive summarization
+      const aiContext = context || this.buildContext(options);
+
+      try {
+        const summary = await summarizeLargeContent(
+          content,
+          options,
+          aiContext,
+          (current, total, stage) => {
+            logger.debug(
+              `Recursive summarization progress: ${current}/${total} - ${stage}`
+            );
+          }
+        );
+
+        // Create a mock streaming result that immediately returns the full summary
+        const mockStream: ReadableStream<string> = new ReadableStream({
+          start(controller) {
+            controller.enqueue(summary);
+            controller.close();
+          },
+        });
+
+        const reader = mockStream.getReader();
+
+        async function* generateChunks(): AsyncGenerator<
+          string,
+          void,
+          unknown
+        > {
+          const { value } = await reader.read();
+          if (value) yield value;
+        }
+
+        // Return mock streaming result - summarizer will be destroyed by the caller
+        return {
+          stream: generateChunks(),
+          reader,
+          summarizer: null as any, // Will be cleaned up properly
+        };
+      } catch (error) {
+        logger.error('Recursive summarization failed:', error);
+        throw error;
+      }
+    }
+
+    // For small content, use simple truncation and streaming
     const { content: processedContent, wasTruncated } =
       this.truncateContent(content);
 
     if (wasTruncated) {
       logger.warn(
-        `Content truncated from ${content.length} to ${MAX_CONTENT_LENGTH} characters`
+        `Content truncated from ${content.length} to 10000 characters`
       );
     }
 
@@ -150,6 +239,17 @@ class SummaryService implements ISummaryService {
       // Transform Chrome AI errors to user-friendly messages
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+
+      // Input too large - this is the most common error
+      if (
+        errorMessage.includes('too large') ||
+        errorMessage.includes('QuotaExceededError') ||
+        errorMessage.includes('input is too large')
+      ) {
+        throw new Error(
+          `Content exceeds Chrome AI limits (max ~3,500 words).\n\n✨ Solutions:\n• Reload the page and try again\n• Select a specific section of text instead\n• Try a shorter article\n• Use "Ask AI About This" on selected text`
+        );
+      }
 
       if (
         errorMessage.includes('not available') ||

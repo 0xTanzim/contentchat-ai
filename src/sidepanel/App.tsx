@@ -2,11 +2,18 @@ import { SuspenseFallback } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { isAIAvailable } from '@/lib/chrome-ai';
 import { createLogger } from '@/lib/logger';
-import { FileText, Languages, Library, MessageCircle } from 'lucide-react';
+import {
+  FileText,
+  Languages,
+  Library,
+  MessageCircle,
+  Sparkles,
+} from 'lucide-react';
 import { ThemeProvider } from 'next-themes';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { ChatView } from './components/ChatView';
 import { ErrorBanner } from './components/ErrorBanner';
+import { ThemeToggle } from './components/ThemeToggle';
 import { useChromeExtension } from './hooks/useChromeExtension';
 import { useAppStore } from './stores/appStore';
 
@@ -19,6 +26,11 @@ const SummaryView = lazy(() =>
 const HistoryView = lazy(() =>
   import('./components/library').then((m) => ({ default: m.HistoryView }))
 );
+const WriterView = lazy(() =>
+  import('./components/writer/WriterView').then((m) => ({
+    default: m.WriterView,
+  }))
+);
 
 function App() {
   const { activeView, setActiveView, aiAvailable, setAiAvailable } =
@@ -28,6 +40,11 @@ function App() {
   const [selectedTextContext, setSelectedTextContext] = useState<string | null>(
     null
   );
+
+  // ✅ State for writer prompt (from "Generate Content from This")
+  const [writerPromptFromSelection, setWriterPromptFromSelection] = useState<
+    string | null
+  >(null);
 
   // ✅ Move useChromeExtension to App level to prevent remounting on tab changes
   const {
@@ -45,7 +62,7 @@ function App() {
     // ✅ Listen for "Ask AI About This" messages from background
     const handleMessage = (
       message: { type: string; text?: string },
-      sender: chrome.runtime.MessageSender,
+      _sender: chrome.runtime.MessageSender,
       sendResponse: (response?: unknown) => void
     ) => {
       logger.info('📬 Message received:', message);
@@ -67,6 +84,23 @@ function App() {
         sendResponse({ success: true });
       }
 
+      if (message.type === 'GENERATE_FROM_SELECTION') {
+        logger.info('✨ Generate Content triggered', {
+          textLength: message.text?.length,
+        });
+
+        // Switch to writer view
+        setActiveView('writer');
+
+        // Set selected text as prompt
+        if (message.text) {
+          setWriterPromptFromSelection(message.text);
+          logger.info('✅ Prompt set, switching to writer');
+        }
+
+        sendResponse({ success: true });
+      }
+
       return true; // Keep channel open for async
     };
 
@@ -82,6 +116,7 @@ function App() {
   const views = [
     { id: 'summary' as const, label: 'Summary', icon: FileText },
     { id: 'chat' as const, label: 'Chat', icon: MessageCircle },
+    { id: 'writer' as const, label: 'Writer', icon: Sparkles },
     { id: 'translate' as const, label: 'Translate', icon: Languages },
     { id: 'library' as const, label: 'Library', icon: Library },
   ];
@@ -91,16 +126,23 @@ function App() {
       <div className="flex h-screen w-full flex-col bg-background">
         {/* Header */}
         <header className="shrink-0 border-b border-border p-4">
-          <h1 className="text-xl font-bold text-foreground">ContentChat AI</h1>
-          <p className="text-sm text-muted-foreground">
-            Privacy-first AI reading assistant
-          </p>
-          {!aiAvailable && (
-            <p className="mt-2 text-xs text-destructive">
-              ⚠️ Chrome Built-in AI not available. Please use Chrome 128+ with
-              AI enabled.
-            </p>
-          )}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-foreground">
+                ContentChat AI
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Privacy-first AI reading assistant
+              </p>
+              {!aiAvailable && (
+                <p className="mt-2 text-xs text-destructive">
+                  ⚠️ Chrome Built-in AI not available. Please use Chrome 128+
+                  with AI enabled.
+                </p>
+              )}
+            </div>
+            <ThemeToggle />
+          </div>
         </header>
 
         {/* Error Banner */}
@@ -119,7 +161,7 @@ function App() {
                   variant={isActive ? 'default' : 'ghost'}
                   className="flex-1 rounded-none"
                   onClick={() => setActiveView(view.id)}
-                  disabled={view.id === 'translate'}
+                  disabled={view.id === 'translate'} // Only translate disabled, writer is active
                 >
                   <Icon className="mr-2 h-4 w-4" />
                   {view.label}
@@ -154,6 +196,13 @@ function App() {
                 isPageLoading={pageLoading}
                 pageError={pageError}
                 onReload={reload}
+              />
+            )}
+
+            {activeView === 'writer' && (
+              <WriterView
+                initialPrompt={writerPromptFromSelection}
+                onPromptUsed={() => setWriterPromptFromSelection(null)}
               />
             )}
 

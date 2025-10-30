@@ -11,6 +11,7 @@ declare global {
   const LanguageDetector: LanguageDetectorConstructor;
   const Proofreader: ProofreaderConstructor;
   const Rewriter: RewriterConstructor;
+  const Writer: WriterConstructor;
 
   interface Window {
     LanguageModel?: LanguageModelConstructor;
@@ -25,6 +26,7 @@ declare global {
       languageDetector?: LanguageDetectorConstructor;
       proofreader?: ProofreaderConstructor;
       rewriter?: RewriterConstructor;
+      writer?: WriterConstructor;
     };
   }
 }
@@ -180,17 +182,17 @@ export type {
   LanguageModelConstructor,
   LanguageModelCreateOptions,
   PromptOptions,
-  ProofreadResult,
   Proofreader,
   ProofreaderConstructor,
   ProofreaderCorrection,
   ProofreaderOptions,
+  ProofreadResult,
   RewriteFormat,
   RewriteLength,
-  RewriteTone,
   Rewriter,
   RewriterConstructor,
   RewriterOptions,
+  RewriteTone,
   Summarizer,
   SummarizerConstructor,
   SummarizerOptions,
@@ -243,7 +245,46 @@ interface Rewriter {
   destroy(): void;
 }
 
+// Writer API - Chrome 137+
+interface WriterConstructor {
+  availability(): Promise<AIAvailability>;
+  create(options?: WriterOptions): Promise<Writer>;
+}
+
+export type WriterTone = 'formal' | 'neutral' | 'casual';
+export type WriterFormat = 'plain-text' | 'markdown';
+export type WriterLength = 'short' | 'medium' | 'long';
+
+interface WriterOptions {
+  tone?: WriterTone;
+  format?: WriterFormat;
+  length?: WriterLength;
+  sharedContext?: string;
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+  outputLanguage?: string;
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
+}
+
+interface Writer {
+  write(input: string, options?: { context?: string }): Promise<string>;
+  writeStreaming(
+    input: string,
+    options?: { context?: string }
+  ): ReadableStream<string>;
+  destroy(): void;
+}
+
+// Common types
+export type AIAvailability =
+  | 'available'
+  | 'after-download'
+  | 'unavailable'
+  | 'no';
+
 export type {
+  AIAvailability,
   DownloadMonitor,
   DownloadProgressEvent,
   LanguageDetectionResult,
@@ -253,10 +294,19 @@ export type {
   LanguageModelConstructor,
   LanguageModelCreateOptions,
   PromptOptions,
+  Proofreader,
+  ProofreaderConstructor,
+  ProofreaderOptions,
+  Rewriter,
+  RewriterConstructor,
+  RewriterOptions,
   Summarizer,
   SummarizerConstructor,
   SummarizerOptions,
   Translator,
   TranslatorConstructor,
   TranslatorOptions,
+  Writer,
+  WriterConstructor,
+  WriterOptions,
 };

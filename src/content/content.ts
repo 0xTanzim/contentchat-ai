@@ -10,6 +10,7 @@ logger.info('Content script loaded on', window.location.href);
 
 /**
  * Extract text content from the current page
+ * Enhanced extraction with better selector priority
  */
 function extractPageContent(): {
   title: string;
@@ -24,33 +25,52 @@ function extractPageContent(): {
     // Get page URL
     const url = window.location.href;
 
-    // Extract main content (prioritize article, main, or body)
-    const contentElement =
-      document.querySelector('article') ||
-      document.querySelector('main') ||
-      document.body;
+    // Try multiple extraction strategies in order of priority
+    let content = '';
 
-    // Remove unwanted elements
-    const unwantedSelectors = [
-      'script',
-      'style',
-      'nav',
-      'header',
-      'footer',
-      'iframe',
-      'noscript',
-      'aside',
-      '.ad',
-      '.advertisement',
-    ];
+    // Strategy 1: Try article tag (best for news/blog posts)
+    const article = document.querySelector('article');
+    if (article) {
+      content = extractFromElement(article);
+    }
 
-    const clone = contentElement.cloneNode(true) as HTMLElement;
-    unwantedSelectors.forEach((selector) => {
-      clone.querySelectorAll(selector).forEach((el) => el.remove());
-    });
+    // Strategy 2: Try main tag
+    if (!content || content.split(/\s+/).length < 50) {
+      const main = document.querySelector('main');
+      if (main) {
+        content = extractFromElement(main);
+      }
+    }
 
-    // Get text content
-    let content = clone.innerText.trim();
+    // Strategy 3: Try common content containers
+    if (!content || content.split(/\s+/).length < 50) {
+      const selectors = [
+        '[role="main"]',
+        '.content',
+        '.main-content',
+        '#content',
+        '#main-content',
+        '.post-content',
+        '.article-content',
+        '.entry-content',
+        '[class*="content"]',
+      ];
+
+      for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+          const extracted = extractFromElement(element as HTMLElement);
+          if (extracted.split(/\s+/).length > content.split(/\s+/).length) {
+            content = extracted;
+          }
+        }
+      }
+    }
+
+    // Strategy 4: Fall back to body (filter noise)
+    if (!content || content.split(/\s+/).length < 50) {
+      content = extractFromElement(document.body);
+    }
 
     // Limit content size (max 100KB to prevent issues)
     if (content.length > 100000) {
@@ -64,6 +84,7 @@ function extractPageContent(): {
       title,
       url,
       contentLength: content.length,
+      wordCount: content.split(/\s+/).length,
       language,
     });
 
@@ -77,6 +98,53 @@ function extractPageContent(): {
     logger.error('Failed to extract content:', error);
     throw error;
   }
+}
+
+/**
+ * Extract and clean text from an HTML element
+ */
+function extractFromElement(element: HTMLElement): string {
+  // Remove unwanted elements
+  const unwantedSelectors = [
+    'script',
+    'style',
+    'nav',
+    'header',
+    'footer',
+    'iframe',
+    'noscript',
+    'aside',
+    'form',
+    'button',
+    '.ad',
+    '.ads',
+    '.advertisement',
+    '.social-share',
+    '.comments',
+    '.related-posts',
+    '.newsletter',
+    '[class*="cookie"]',
+    '[class*="banner"]',
+    '[class*="popup"]',
+    '[class*="modal"]',
+  ];
+
+  const clone = element.cloneNode(true) as HTMLElement;
+  unwantedSelectors.forEach((selector) => {
+    clone.querySelectorAll(selector).forEach((el) => el.remove());
+  });
+
+  // Get text content and clean it
+  let text = clone.innerText || clone.textContent || '';
+
+  // Clean up whitespace
+  text = text
+    .replace(/\n{3,}/g, '\n\n') // Max 2 newlines
+    .replace(/\t+/g, ' ') // Replace tabs with space
+    .replace(/ {2,}/g, ' ') // Replace multiple spaces
+    .trim();
+
+  return text;
 }
 
 // Listen for messages from sidepanel/background

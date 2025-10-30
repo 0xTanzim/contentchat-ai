@@ -73,6 +73,14 @@ function createContextMenus() {
       contexts: ['selection', 'editable'],
     });
 
+    // Writer - Generate Content
+    chrome.contextMenus.create({
+      id: 'generate-content',
+      parentId: 'contentchat-ai',
+      title: '✨ Generate Content from This',
+      contexts: ['selection'],
+    });
+
     // Ask AI
     chrome.contextMenus.create({
       id: 'ask-ai',
@@ -217,6 +225,23 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           isEditable: info.editable,
         });
       }
+      break;
+
+    case 'generate-content':
+      // Open side panel and switch to Writer tab
+      await chrome.sidePanel.open({ tabId: tab.id });
+
+      // Wait for panel to open, then send message to switch to writer
+      setTimeout(async () => {
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'GENERATE_FROM_SELECTION',
+            text: selectedText,
+          });
+        } catch (error) {
+          logger.error('Failed to send GENERATE_FROM_SELECTION:', error);
+        }
+      }, 500);
       break;
 
     case 'ask-ai':
