@@ -62,7 +62,12 @@ export async function createRewriter(
     }
 
     // Create rewriter with download progress monitor
+    // Per official docs: https://developer.chrome.com/docs/ai/rewriter-api
+    // Must specify expectedInputLanguages, expectedContextLanguages, and outputLanguage
     const rewriter = await (self as any).Rewriter.create({
+      expectedInputLanguages: ['en', 'ja', 'es'],
+      expectedContextLanguages: ['en', 'ja', 'es'],
+      outputLanguage: 'en',
       tone: options?.tone || 'as-is',
       format: options?.format || 'plain-text',
       length: options?.length || 'as-is',

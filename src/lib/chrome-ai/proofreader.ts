@@ -69,6 +69,7 @@ export async function createProofreader(
 
     // Create proofreader with download progress monitor
     const proofreader = await (self as any).Proofreader.create({
+      expectedInputLanguages: ['en'],
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
           logger.info(

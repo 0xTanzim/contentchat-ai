@@ -104,8 +104,82 @@ chrome.runtime.onInstalled.addListener((details) => {
   createContextMenus();
 });
 
+/**
+ * Inject content script into a tab if not already injected
+ * This handles the edge case where user tries to use extension before reloading tab
+ */
+async function ensureContentScriptInjected(tabId: number): Promise<boolean> {
+  try {
+    // Try to ping the content script first
+    await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+    logger.debug('Content script already injected in tab:', tabId);
+    return true;
+  } catch (error) {
+    // Content script not injected, inject it now
+    logger.info('Content script not found, injecting into tab:', tabId);
+
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['src/content/content.js'],
+      });
+
+      logger.info('✅ Content script injected successfully');
+
+      // Wait a bit for script to initialize
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      return true;
+    } catch (injectError) {
+      logger.error('❌ Failed to inject content script:', injectError);
+
+      // Show notification to user
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icon/128.png',
+        title: 'ContentChat AI',
+        message: 'Please reload this page to use this feature.',
+        priority: 2,
+      });
+
+      return false;
+    }
+  }
+}
+
+/**
+ * Send message to content script with automatic injection fallback
+ */
+async function sendMessageToTab(tabId: number, message: any): Promise<void> {
+  try {
+    // First, ensure content script is injected
+    const isInjected = await ensureContentScriptInjected(tabId);
+
+    if (!isInjected) {
+      logger.warn('Cannot send message - content script injection failed');
+      return;
+    }
+
+    // Now send the actual message
+    await chrome.tabs.sendMessage(tabId, message);
+    logger.debug('✅ Message sent successfully:', message.type);
+  } catch (error) {
+    logger.error('❌ Failed to send message to tab:', error);
+
+    // Show user-friendly notification
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon/128.png',
+      title: 'ContentChat AI',
+      message:
+        'Unable to process request. Please reload the page and try again.',
+      priority: 2,
+    });
+  }
+}
+
 // Context menu click handler
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   logger.debug('Context menu clicked:', info.menuItemId);
 
   if (!tab?.id) return;
@@ -116,7 +190,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   // Send message to content script based on menu item
   switch (info.menuItemId) {
     case 'fix-grammar':
-      chrome.tabs.sendMessage(tab.id, {
+      await sendMessageToTab(tab.id, {
         type: 'PROOFREAD_TEXT',
         text: selectedText,
         isEditable: info.editable,
@@ -136,7 +210,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         };
         const preset = presetMap[info.menuItemId];
 
-        chrome.tabs.sendMessage(tab.id, {
+        await sendMessageToTab(tab.id, {
           type: 'REWRITE_TEXT',
           text: selectedText,
           preset,
@@ -146,14 +220,19 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       break;
 
     case 'ask-ai':
-      // Open side panel and send selected text
-      chrome.sidePanel.open({ tabId: tab.id });
+      // Open side panel first
+      await chrome.sidePanel.open({ tabId: tab.id });
+
       // Wait a bit for panel to open, then send message
-      setTimeout(() => {
-        chrome.runtime.sendMessage({
-          type: 'ASK_ABOUT_SELECTION',
-          text: selectedText,
-        });
+      setTimeout(async () => {
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'ASK_ABOUT_SELECTION',
+            text: selectedText,
+          });
+        } catch (error) {
+          logger.error('Failed to send ASK_ABOUT_SELECTION:', error);
+        }
       }, 500);
       break;
   }
@@ -169,6 +248,21 @@ chrome.runtime.onMessage.addListener((message) => {
     return true;
   }
 
+  if (message.type === 'CONTENT_SCRIPT_READY') {
+    // Content script loaded successfully - acknowledge it
+    logger.info('Content script ready on:', message.url);
+    return true;
+  }
+
+  if (message.type === 'ASK_ABOUT_SELECTION') {
+    // Selection message from context menu - will be handled by sidepanel
+    logger.debug(
+      'Ask about selection message:',
+      message.text?.substring(0, 50)
+    );
+    return true;
+  }
+
   return true; // Keep channel open for async responses
 });
 
@@ -180,9 +274,4 @@ chrome.action.onClicked.addListener((tab) => {
   if (tab.id) {
     chrome.sidePanel.open({ tabId: tab.id });
   }
-});
-
-// Keep service worker alive
-self.addEventListener('fetch', () => {
-  // This keeps the service worker active
 });

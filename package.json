@@ -4,9 +4,8 @@
   "description": "Privacy-first AI reading assistant for Chrome",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": " tsc && vite build",
-    "build:skip-lint": "tsc && vite build",
+    "dev": "vite build --watch --mode development",
+    "build": " pnpm lint && tsc && vite build --mode production",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx",

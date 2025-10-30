@@ -412,7 +412,7 @@ export const useChatStore = create<ChatState>()(
             Object.keys(persistedState.conversations)[0]
           ]?.id
         ) {
-          console.log('🔄 Migrating chat store from v1 to v2...');
+          logger.info('🔄 Migrating chat store from v1 to v2...');
           return {
             ...persistedState,
             conversations: migrateLegacyConversations(

@@ -14,7 +14,6 @@ import pino from 'pino';
 
 // Environment detection
 const isDevelopment = import.meta.env.MODE === 'development';
-const isDebugEnabled = import.meta.env.VITE_DEBUG === 'true';
 
 // Log level configuration
 const LOG_LEVEL =
@@ -108,37 +107,43 @@ class BrowserLogger {
   }
 
   trace(msg: string, obj?: any): void {
-    if (isLevelEnabled('trace')) {
+    // Only log traces in development
+    if (isDevelopment && isLevelEnabled('trace')) {
       console.trace(formatBrowserLog('trace', this.context, msg, obj));
     }
   }
 
   debug(msg: string, obj?: any): void {
-    if (isLevelEnabled('debug')) {
+    // Only log debug in development
+    if (isDevelopment && isLevelEnabled('debug')) {
       console.debug(formatBrowserLog('debug', this.context, msg, obj));
     }
   }
 
   info(msg: string, obj?: any): void {
-    if (isLevelEnabled('info')) {
+    // Only log info in development
+    if (isDevelopment && isLevelEnabled('info')) {
       console.info(formatBrowserLog('info', this.context, msg, obj));
     }
   }
 
   warn(msg: string, obj?: any): void {
-    if (isLevelEnabled('warn')) {
+    // Only log warnings in development to avoid chrome://extensions errors
+    if (isDevelopment && isLevelEnabled('warn')) {
       console.warn(formatBrowserLog('warn', this.context, msg, obj));
     }
   }
 
   error(msg: string, obj?: any): void {
-    if (isLevelEnabled('error')) {
+    // Only log errors in development to avoid chrome://extensions errors
+    if (isDevelopment && isLevelEnabled('error')) {
       console.error(formatBrowserLog('error', this.context, msg, obj));
     }
   }
 
   fatal(msg: string, obj?: any): void {
-    if (isLevelEnabled('fatal')) {
+    // Only log fatal errors in development to avoid chrome://extensions errors
+    if (isDevelopment && isLevelEnabled('fatal')) {
       console.error(formatBrowserLog('fatal', this.context, msg, obj));
     }
   }

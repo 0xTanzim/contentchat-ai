@@ -43,7 +43,7 @@ export function useChromeExtension(): UseChromeExtensionReturn {
 
       setCurrentPage(content);
 
-      console.log('✅ useChromeExtension: Page content loaded', {
+      logger.debug('Page content loaded', {
         title: content.title,
         url: content.url,
       });
@@ -61,7 +61,11 @@ export function useChromeExtension(): UseChromeExtensionReturn {
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to load page content';
-      console.error('❌ useChromeExtension: Failed to load content', errorMsg);
+
+      // Only log errors that aren't expected (restricted pages are normal)
+      if (!errorMsg.includes('Cannot access')) {
+        logger.warn('Failed to load content:', errorMsg);
+      }
 
       setError(errorMsg);
 
@@ -91,10 +95,7 @@ export function useChromeExtension(): UseChromeExtensionReturn {
     const cleanup = chromeExtensionService.listenToMessages(
       (message, _sender, _sendResponse) => {
         if (message.type === 'CONTENT_SCRIPT_READY' && message.url) {
-          console.log(
-            '📨 useChromeExtension: Content script ready for:',
-            message.url
-          );
+          logger.debug('Content script ready for:', message.url);
 
           // Small delay to ensure content script is fully initialized
           setTimeout(() => {
@@ -115,7 +116,7 @@ export function useChromeExtension(): UseChromeExtensionReturn {
       (_tabId, changeInfo, tab) => {
         // Only react to complete status on active tab
         if (changeInfo.status === 'complete' && tab.active) {
-          console.log('🔄 useChromeExtension: Tab loaded completely:', tab.url);
+          logger.debug('Tab loaded completely:', tab.url);
 
           // Wait for content script to initialize
           setTimeout(() => {
@@ -134,7 +135,7 @@ export function useChromeExtension(): UseChromeExtensionReturn {
   useEffect(() => {
     const cleanup = chromeExtensionService.listenToTabActivation(
       (activeInfo) => {
-        console.log('🔄 useChromeExtension: Tab activated:', activeInfo.tabId);
+        logger.debug('Tab activated:', activeInfo.tabId);
 
         // Reload content when switching tabs
         setTimeout(() => {

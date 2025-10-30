@@ -94,8 +94,11 @@ export async function getCurrentPageContent(): Promise<PageContent> {
           const errorMsg =
             error instanceof Error ? error.message : String(error);
 
-          // Content script not ready
-          if (errorMsg.includes('Could not establish connection')) {
+          // Content script not ready - don't log during retries
+          if (
+            errorMsg.includes('Could not establish connection') ||
+            errorMsg.includes('Receiving end does not exist')
+          ) {
             throw new Error('Content script not ready. Retrying...');
           }
 
@@ -113,9 +116,12 @@ export async function getCurrentPageContent(): Promise<PageContent> {
 
     return response as PageContent;
   } catch (error) {
-    logger.error('Failed to get page content:', error);
-
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+
+    // Don't log errors for expected scenarios (restricted pages)
+    if (!errorMsg.includes('Cannot access')) {
+      logger.error('Failed to get page content:', error);
+    }
 
     // Provide user-friendly error messages
     if (errorMsg.includes('Cannot access')) {

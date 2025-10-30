@@ -2,6 +2,8 @@
 
 This guide explains how to enable, download, and test the **Gemini Nano** on-device AI model in Google Chrome. Follow these steps carefully to ensure your environment is ready.
 
+[![video tutorial](https://img.youtube.com/vi/finN5PfJyCg/hqdefault.jpg)](https://youtu.be/finN5PfJyCg?si=ipH-ZFchKFDtWVQP)
+
 ---
 
 ## **1. Check Chrome Version**

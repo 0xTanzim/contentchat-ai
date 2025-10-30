@@ -7,11 +7,18 @@
   "author": "Tanzim Hossain (@0xtanzim)",
   "homepage_url": "https://github.com/0xtanzim/contentchat-ai",
   "icons": {
-    "16": "icon/16.svg",
-    "48": "icon/48.svg",
-    "128": "icon/128.svg"
+    "16": "icon/16.png",
+    "48": "icon/48.png",
+    "128": "icon/128.png"
   },
-  "permissions": ["activeTab", "sidePanel", "storage", "contextMenus"],
+  "permissions": [
+    "activeTab",
+    "sidePanel",
+    "storage",
+    "contextMenus",
+    "scripting",
+    "notifications"
+  ],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/background/background.ts",
@@ -19,7 +26,9 @@
   },
   "trial_tokens": [
     "AqQ5kxid/Z4syX84CDhePNOhQ/ncsFnR6XecGeKRjzs5KVsMZlUHaUoNo9k1b0Hr0iBlB4fibWIRDiWS1pzTWwoAAABxeyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vamdoZWhrbGthYmVwZGVrbnBnYmJlZ2RwY2Nib29tcG8iLCJmZWF0dXJlIjoiQUlQcm9vZnJlYWRlckFQSSIsImV4cGlyeSI6MTc3OTE0ODgwMH0=",
-    "As6uCBfKj0Q6MlMTGWmeRJ2xEOVeJ1jRj7fTDF9lTrYJrE61dONPdhrhgnyctLrYx4kUTCt0WxVWUHSicUVELQcAAABueyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vamdoZWhrbGthYmVwZGVrbnBnYmJlZ2RwY2Nib29tcG8iLCJmZWF0dXJlIjoiQUlSZXdyaXRlckFQSSIsImV4cGlyeSI6MTc2OTQ3MjAwMH0="
+    "As6uCBfKj0Q6MlMTGWmeRJ2xEOVeJ1jRj7fTDF9lTrYJrE61dONPdhrhgnyctLrYx4kUTCt0WxVWUHSicUVELQcAAABueyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vamdoZWhrbGthYmVwZGVrbnBnYmJlZ2RwY2Nib29tcG8iLCJmZWF0dXJlIjoiQUlSZXdyaXRlckFQSSIsImV4cGlyeSI6MTc2OTQ3MjAwMH0=",
+    "Ai7pjW4uoZs8YN2XBkXWt2JkD8p70oJD5hsM4KCey0I1Uv6Afw0HQs4T9IwuLExbsDjJvk/OYFE3fnVwbUFPmAoAAAB7eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vamdoZWhrbGthYmVwZGVrbnBnYmJlZ2RwY2Nib29tcG8iLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElNdWx0aW1vZGFsSW5wdXQiLCJleHBpcnkiOjE3NzQzMTA0MDB9",
+    "AvCbdwMEfUVKR7P8+oZ8utHifu+yEgTx0J1740Gj7IWlHX32s5PjBnOHDlBg54iTzt2w+G2lcUsU6CJW81zzkw8AAABseyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vamdoZWhrbGthYmVwZGVrbnBnYmJlZ2RwY2Nib29tcG8iLCJmZWF0dXJlIjoiQUlXcml0ZXJBUEkiLCJleHBpcnkiOjE3NzY3Mjk2MDB9"
   ],
 
   "side_panel": {

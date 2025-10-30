@@ -34,10 +34,13 @@ class ChromeExtensionService implements IChromeExtensionService {
 
       return content;
     } catch (error) {
-      logger.error('Failed to load content:', error);
-
       const errorMsg =
         error instanceof Error ? error.message : 'Failed to load page content';
+
+      // Don't log errors for expected scenarios (restricted pages, blank pages)
+      if (!errorMsg.includes('Cannot access')) {
+        logger.error('Failed to load content:', error);
+      }
 
       // Handle content script not ready
       if (errorMsg.includes('Could not establish connection')) {

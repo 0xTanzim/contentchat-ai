@@ -66,7 +66,18 @@ class ChatService implements IChatService {
         throw new Error(errorMsg);
       }
 
-      // Check availability
+      // Define create options BEFORE checking availability
+      // This ensures we have consistent configuration
+      // Per official docs: https://developer.chrome.com/docs/ai/prompt-api
+      // Must specify both expectedInputs and expectedOutputs with languages
+      const createOptions = {
+        expectedInputs: [{ type: 'text', languages: ['en', 'ja', 'es'] }], // Support multiple input languages
+        expectedOutputs: [{ type: 'text', languages: ['en'] }], // ✅ Required to avoid warning - Output in English
+        temperature: settings.temperature || 0.7,
+        topK: 40, // Default topK value
+      };
+
+      // Check availability (NOTE: availability() doesn't accept options in current API)
       const availability = await LanguageModelAPI.availability();
       logger.debug('📊 Model availability:', { availability });
 
@@ -80,12 +91,10 @@ class ChatService implements IChatService {
         );
       }
 
-      // Create model with settings and output language (required for Chrome AI)
-      this.languageModel = await LanguageModelAPI.create({
-        temperature: settings.temperature || 0.7,
-        topK: 40, // Default topK value
-        expectedOutputs: [{ type: 'text', languages: ['en'] }], // ✅ Specify English output
-      });
+      // Create model with the defined options
+      // Per official docs: Must specify expectedOutputs with languages to avoid warnings
+      // Reference: https://developer.chrome.com/docs/ai/prompt-api
+      this.languageModel = await LanguageModelAPI.create(createOptions);
 
       logger.info('✅ Language model initialized successfully');
     } catch (error) {

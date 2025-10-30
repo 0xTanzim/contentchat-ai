@@ -185,7 +185,7 @@ export const useSummaryStore = create<SummaryState>()(
             }
           });
 
-          console.log(`🧹 Cleaned up history older than ${maxAgeDays} days`);
+          logger.info(`🧹 Cleaned up history older than ${maxAgeDays} days`);
           return { summaries: cleanedSummaries };
         });
       },

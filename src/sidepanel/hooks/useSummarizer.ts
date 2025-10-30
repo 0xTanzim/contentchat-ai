@@ -223,7 +223,6 @@ export function useSummarizer(
         description: `${summaryStats.summaryWordCount} words · ${summaryStats.compressionRatio}% compressed`,
       });
     } catch (err) {
-      logger.error('❌ Generation failed', { error: err });
       setIsStreaming(false);
 
       // Don't show error if user stopped
@@ -234,6 +233,18 @@ export function useSummarizer(
 
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to generate summary';
+
+      // Only log as error for system errors, not user errors (validation)
+      if (
+        errorMsg.includes('insufficient text') ||
+        errorMsg.includes('too short') ||
+        errorMsg.includes('Cannot access')
+      ) {
+        logger.warn('Generation validation failed:', errorMsg);
+      } else {
+        logger.error('Generation failed:', { error: err });
+      }
+
       setError(errorMsg);
 
       // Handle specific error types

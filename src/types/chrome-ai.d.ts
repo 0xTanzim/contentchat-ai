@@ -114,6 +114,7 @@ interface ProofreaderConstructor {
 }
 
 interface ProofreaderOptions {
+  expectedInputLanguages?: string[];
   signal?: AbortSignal;
   monitor?: (monitor: DownloadMonitor) => void;
 }

@@ -83,6 +83,12 @@ function extractPageContent(): {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   logger.debug('Received message:', message.type);
 
+  // Handle PING message for content script detection
+  if (message.type === 'PING') {
+    sendResponse({ status: 'ok' });
+    return true;
+  }
+
   if (message.type === 'GET_PAGE_CONTENT') {
     try {
       const pageData = extractPageContent();

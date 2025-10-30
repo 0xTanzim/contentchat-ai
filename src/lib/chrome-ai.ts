@@ -102,8 +102,12 @@ export async function createSummarizer(
       }
     }
 
-    // Create summarizer with download progress monitor
+    // Create summarizer with proper language parameters
+    // Per official docs: https://developer.chrome.com/docs/ai/summarizer-api
+    // Must specify expectedInputLanguages and outputLanguage
     const summarizer = await (self as any).Summarizer.create({
+      expectedInputLanguages: ['en', 'ja', 'es'], // Supported input languages
+      outputLanguage: 'en', // Required output language specification
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
           logger.info(
@@ -257,10 +261,14 @@ export async function createLanguageModel(
     }
 
     // Create language model with proper options format
+    // Per official docs: https://developer.chrome.com/docs/ai/prompt-api
+    // Must specify expectedInputs and expectedOutputs with languages
     const sessionOptions: any = {
+      expectedInputs: [{ type: 'text', languages: ['en', 'ja', 'es'] }], // Support multiple input languages
+      expectedOutputs: [{ type: 'text', languages: ['en'] }], // Output in English
       monitor(m: any) {
         m.addEventListener('downloadprogress', (e: any) => {
-          console.log(
+          logger.info(
             `Language model: Downloaded ${(e.loaded * 100).toFixed(1)}%`
           );
         });
@@ -276,7 +284,7 @@ export async function createLanguageModel(
     const model = await (self as any).LanguageModel.create(sessionOptions);
     return model;
   } catch (error) {
-    console.error('Failed to create language model:', error);
+    logger.error('Failed to create language model:', error);
     throw error;
   }
 }
@@ -336,7 +344,7 @@ export async function createTranslator(
     const translator = await (self as any).Translator.create(options);
     return translator;
   } catch (error) {
-    console.error('Failed to create translator:', error);
+    logger.error('Failed to create translator:', error);
     throw error;
   }
 }
@@ -396,7 +404,7 @@ export async function createLanguageDetector(): Promise<LanguageDetector | null>
     const detector = await (self as any).LanguageDetector.create();
     return detector;
   } catch (error) {
-    console.error('Failed to create language detector:', error);
+    logger.error('Failed to create language detector:', error);
     throw error;
   }
 }
