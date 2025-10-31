@@ -100,13 +100,21 @@ interface SummarizerConstructor {
 }
 
 interface TranslatorConstructor {
-  availability(): Promise<'available' | 'after-download' | 'unavailable'>;
+  availability(options: {
+    sourceLanguage: string;
+    targetLanguage: string;
+  }): Promise<'available' | 'downloadable' | 'not-available'>;
   create(options: TranslatorOptions): Promise<Translator>;
 }
 
 interface LanguageDetectorConstructor {
   availability(): Promise<'available' | 'after-download' | 'unavailable'>;
-  create(): Promise<LanguageDetector>;
+  create(options?: LanguageDetectorOptions): Promise<LanguageDetector>;
+}
+
+interface LanguageDetectorOptions {
+  signal?: AbortSignal;
+  monitor?: (monitor: DownloadMonitor) => void;
 }
 
 // Proofreader API - Chrome 141+
@@ -157,6 +165,7 @@ interface TranslatorOptions {
 
 interface Translator {
   translate(input: string): Promise<string>;
+  translateStreaming(input: string): ReadableStream<string>;
   destroy(): void;
 }
 
@@ -290,6 +299,7 @@ export type {
   LanguageDetectionResult,
   LanguageDetector,
   LanguageDetectorConstructor,
+  LanguageDetectorOptions,
   LanguageModel,
   LanguageModelConstructor,
   LanguageModelCreateOptions,

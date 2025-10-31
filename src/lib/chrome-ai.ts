@@ -5,13 +5,10 @@
  */
 
 import type {
-  LanguageDetector,
   LanguageModel,
   LanguageModelCreateOptions,
   Summarizer,
   SummarizerOptions,
-  Translator,
-  TranslatorOptions,
 } from '@/types/chrome-ai';
 import { createLogger } from './logger';
 
@@ -489,131 +486,5 @@ export async function promptWithContext(
     return response;
   } finally {
     model.destroy();
-  }
-}
-
-/**
- * Create a Translator instance using official API
- * Reference: https://developer.chrome.com/docs/ai/translator-api
- */
-export async function createTranslator(
-  options: TranslatorOptions
-): Promise<Translator | null> {
-  // Feature detection
-  if (!('Translator' in self)) {
-    throw new Error(
-      'Translator API not available. Please use Chrome 138+ with AI enabled.'
-    );
-  }
-
-  try {
-    // Check availability
-    const availability = await (self as any).Translator.availability();
-
-    if (availability === 'no' || availability === 'unavailable') {
-      throw new Error('Translator not supported on this device');
-    }
-
-    // Require user activation if model needs download
-    if (availability === 'after-download' || availability === 'downloadable') {
-      if (!navigator.userActivation?.isActive) {
-        throw new Error('User activation required to download AI model');
-      }
-    }
-
-    const translator = await (self as any).Translator.create(options);
-    return translator;
-  } catch (error) {
-    logger.error('Failed to create translator:', error);
-    throw error;
-  }
-}
-
-/**
- * Translate text between languages
- */
-export async function translateText(
-  text: string,
-  sourceLanguage: string,
-  targetLanguage: string
-): Promise<string> {
-  const translator = await createTranslator({
-    sourceLanguage,
-    targetLanguage,
-  });
-
-  if (!translator) {
-    throw new Error('Failed to create translator');
-  }
-
-  try {
-    const translated = await translator.translate(text);
-    return translated;
-  } finally {
-    translator.destroy();
-  }
-}
-
-/**
- * Create a Language Detector instance using official API
- * Reference: https://developer.chrome.com/docs/ai/language-detection
- */
-export async function createLanguageDetector(): Promise<LanguageDetector | null> {
-  // Feature detection
-  if (!('LanguageDetector' in self)) {
-    throw new Error(
-      'LanguageDetector API not available. Please use Chrome 138+ with AI enabled.'
-    );
-  }
-
-  try {
-    // Check availability
-    const availability = await (self as any).LanguageDetector.availability();
-
-    if (availability === 'no' || availability === 'unavailable') {
-      throw new Error('Language Detector not supported on this device');
-    }
-
-    // Require user activation if model needs download
-    if (availability === 'after-download' || availability === 'downloadable') {
-      if (!navigator.userActivation?.isActive) {
-        throw new Error('User activation required to download AI model');
-      }
-    }
-
-    const detector = await (self as any).LanguageDetector.create();
-    return detector;
-  } catch (error) {
-    logger.error('Failed to create language detector:', error);
-    throw error;
-  }
-}
-
-/**
- * Detect language of text
- */
-export async function detectLanguage(text: string): Promise<{
-  language: string;
-  confidence: number;
-}> {
-  const detector = await createLanguageDetector();
-
-  if (!detector) {
-    throw new Error('Failed to create language detector');
-  }
-
-  try {
-    const results = await detector.detect(text);
-
-    if (results.length === 0) {
-      return { language: 'en', confidence: 0 };
-    }
-
-    return {
-      language: results[0].detectedLanguage,
-      confidence: results[0].confidence,
-    };
-  } finally {
-    detector.destroy();
   }
 }

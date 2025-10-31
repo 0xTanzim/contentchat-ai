@@ -2,13 +2,7 @@ import { SuspenseFallback } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { isAIAvailable } from '@/lib/chrome-ai';
 import { createLogger } from '@/lib/logger';
-import {
-  FileText,
-  Languages,
-  Library,
-  MessageCircle,
-  Sparkles,
-} from 'lucide-react';
+import { FileText, Library, MessageCircle, Sparkles } from 'lucide-react';
 import { ThemeProvider } from 'next-themes';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { ChatView } from './components/ChatView';
@@ -117,7 +111,6 @@ function App() {
     { id: 'summary' as const, label: 'Summary', icon: FileText },
     { id: 'chat' as const, label: 'Chat', icon: MessageCircle },
     { id: 'writer' as const, label: 'Writer', icon: Sparkles },
-    { id: 'translate' as const, label: 'Translate', icon: Languages },
     { id: 'library' as const, label: 'Library', icon: Library },
   ];
 
@@ -161,7 +154,6 @@ function App() {
                   variant={isActive ? 'default' : 'ghost'}
                   className="flex-1 rounded-none"
                   onClick={() => setActiveView(view.id)}
-                  disabled={view.id === 'translate'} // Only translate disabled, writer is active
                 >
                   <Icon className="mr-2 h-4 w-4" />
                   {view.label}
@@ -204,18 +196,6 @@ function App() {
                 initialPrompt={writerPromptFromSelection}
                 onPromptUsed={() => setWriterPromptFromSelection(null)}
               />
-            )}
-
-            {activeView === 'translate' && (
-              <div className="flex h-full items-center justify-center p-6 text-center">
-                <div>
-                  <Languages className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="mb-2 text-lg font-semibold">Coming Soon</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Translation feature will be available soon
-                  </p>
-                </div>
-              </div>
             )}
 
             {activeView === 'library' && <HistoryView />}

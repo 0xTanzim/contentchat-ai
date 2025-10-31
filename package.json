@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": " pnpm lint && tsc && vite build --mode production",
+    "build:prod": "pnpm lint && tsc && vite build --mode production",
+    "build": "tsc && vite build --mode development",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx",
@@ -65,6 +66,7 @@
     "vitest": "^4.0.4"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.13",
     "add": "^2.0.6",

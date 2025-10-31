@@ -103,8 +103,7 @@ contentchat-ai/
 - **Prompt API (LanguageModel)** - Chat functionality
 - **Proofreader API** - Grammar checking
 - **Rewriter API** - Text transformation
-- **Language Detector API** - Language detection (ready)
-- **Translator API** - Translation (ready for v2.0)
+- **Writer API** - Content generation
 
 ## 🧪 Testing
 

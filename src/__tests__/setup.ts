@@ -86,18 +86,6 @@ interface MockLanguageModel {
   destroy: () => void;
 }
 
-interface MockTranslator {
-  translate: (text: string) => Promise<string>;
-  destroy: () => void;
-}
-
-interface MockLanguageDetector {
-  detect: (
-    text: string
-  ) => Promise<{ detectedLanguage: string; confidence: number }[]>;
-  destroy: () => void;
-}
-
 const mockSummarizer: MockSummarizer = {
   summarize: vi.fn(async (text: string) => {
     return `Summary of: ${text.substring(0, 50)}...`;
@@ -108,20 +96,6 @@ const mockSummarizer: MockSummarizer = {
 const mockLanguageModel: MockLanguageModel = {
   prompt: vi.fn(async (text: string) => {
     return `AI response to: ${text.substring(0, 30)}...`;
-  }),
-  destroy: vi.fn(),
-};
-
-const mockTranslator: MockTranslator = {
-  translate: vi.fn(async (text: string) => {
-    return `Translated: ${text}`;
-  }),
-  destroy: vi.fn(),
-};
-
-const mockLanguageDetector: MockLanguageDetector = {
-  detect: vi.fn(async () => {
-    return [{ detectedLanguage: 'en', confidence: 0.95 }];
   }),
   destroy: vi.fn(),
 };
@@ -143,24 +117,6 @@ const windowAIMock = {
       })
     ),
     create: vi.fn(async () => mockLanguageModel),
-  },
-
-  translator: {
-    capabilities: vi.fn(
-      async (): Promise<MockAICapabilities> => ({
-        available: 'readily',
-      })
-    ),
-    create: vi.fn(async () => mockTranslator),
-  },
-
-  languageDetector: {
-    capabilities: vi.fn(
-      async (): Promise<MockAICapabilities> => ({
-        available: 'readily',
-      })
-    ),
-    create: vi.fn(async () => mockLanguageDetector),
   },
 };
 

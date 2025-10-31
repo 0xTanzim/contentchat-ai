@@ -25,10 +25,8 @@ interface AppState {
   setAiAvailable: (available: boolean) => void;
 
   // Active view
-  activeView: 'summary' | 'chat' | 'writer' | 'translate' | 'library';
-  setActiveView: (
-    view: 'summary' | 'chat' | 'writer' | 'translate' | 'library'
-  ) => void;
+  activeView: 'summary' | 'chat' | 'writer' | 'library';
+  setActiveView: (view: 'summary' | 'chat' | 'writer' | 'library') => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
