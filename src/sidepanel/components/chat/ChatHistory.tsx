@@ -34,10 +34,25 @@ export const ChatHistory = memo(function ChatHistory() {
   );
 
   // ✅ Memoize the sorted conversations array
+  // Filter to ensure only valid Conversation objects with messages (type guard)
   const conversations = useMemo(() => {
-    return Object.values(conversationsRecord).sort(
-      (a, b) => b.updatedAt - a.updatedAt
-    );
+    return Object.values(conversationsRecord)
+      .filter((conv): conv is import('@/types/chat.types').Conversation => {
+        // Type guard: Ensure it's a Conversation, not a Summary
+        // AND has at least 1 message (don't show empty auto-created conversations)
+        return (
+          conv &&
+          typeof conv === 'object' &&
+          'id' in conv &&
+          'mode' in conv &&
+          'messages' in conv &&
+          Array.isArray(conv.messages) &&
+          conv.messages.length > 0 && // ✅ Only show conversations with messages
+          'createdAt' in conv &&
+          'updatedAt' in conv
+        );
+      })
+      .sort((a, b) => b.updatedAt - a.updatedAt);
   }, [conversationsRecord]);
 
   const handleLoadConversation = useCallback(

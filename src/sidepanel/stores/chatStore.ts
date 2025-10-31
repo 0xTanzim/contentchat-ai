@@ -442,13 +442,32 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       const conversations = await chatDB.getAllConversations();
       const conversationsRecord: Record<string, Conversation> = {};
 
+      // ✅ Type guard: Only load valid Conversation objects
       conversations.forEach((conv) => {
-        conversationsRecord[conv.id] = conv;
+        // Validate it's a Conversation (has messages array, not content string)
+        if (
+          conv &&
+          typeof conv === 'object' &&
+          'id' in conv &&
+          'mode' in conv &&
+          'messages' in conv &&
+          Array.isArray(conv.messages) &&
+          !('content' in conv) // Summaries have content, conversations don't
+        ) {
+          conversationsRecord[conv.id] = conv;
+        } else {
+          logger.warn('⚠️ Skipped invalid conversation object:', {
+            id: conv?.id,
+            hasMessages: 'messages' in conv,
+            isArray: Array.isArray(conv?.messages),
+          });
+        }
       });
 
       set({ conversations: conversationsRecord });
       logger.info('✅ Loaded conversations from IndexedDB:', {
-        count: conversations.length,
+        count: Object.keys(conversationsRecord).length,
+        total: conversations.length,
       });
     } catch (error) {
       logger.error('❌ Failed to load from IndexedDB:', error);

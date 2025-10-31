@@ -3,6 +3,7 @@
  * Handles different summary types, options, caching, and stats
  */
 
+import { summaryDB } from '@/lib/db/summaryDB';
 import { createLogger } from '@/lib/logger';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -74,6 +75,10 @@ interface SummaryState {
   getRecentHistory: (limit?: number) => Summary[];
   cleanupOldHistory: (maxAgeDays?: number) => void;
   deleteHistoryItem: (url: string, timestamp: number) => void;
+
+  // IndexedDB sync
+  syncToIndexedDB: (url: string, summary: Summary) => Promise<void>;
+  loadFromIndexedDB: () => Promise<void>;
 }
 
 // Helper to generate unique hash for options
@@ -102,7 +107,8 @@ export const useSummaryStore = create<SummaryState>()(
       addSummary: (url, summary) =>
         set((state) => {
           const hash = generateOptionsHash(summary.options);
-          return {
+
+          const updatedState = {
             summaries: {
               ...state.summaries,
               [url]: {
@@ -111,6 +117,13 @@ export const useSummaryStore = create<SummaryState>()(
               },
             },
           };
+
+          // ✅ Sync to IndexedDB
+          summaryDB.saveSummary(url, summary).catch((error) => {
+            logger.error('Failed to sync summary to IndexedDB:', error);
+          });
+
+          return updatedState;
         }),
 
       getSummary: (url, options) => {
@@ -197,12 +210,22 @@ export const useSummaryStore = create<SummaryState>()(
           if (!urlSummaries) return state;
 
           const updatedUrlSummaries: Record<string, Summary> = {};
+          let deletedSummary: Summary | null = null;
 
           Object.entries(urlSummaries).forEach(([hash, summary]) => {
             if (summary.timestamp !== timestamp) {
               updatedUrlSummaries[hash] = summary;
+            } else {
+              deletedSummary = summary;
             }
           });
+
+          // ✅ Delete from IndexedDB
+          if (deletedSummary) {
+            summaryDB.deleteSummary(url, timestamp).catch((error) => {
+              logger.error('Failed to delete summary from IndexedDB:', error);
+            });
+          }
 
           // If no summaries left for URL, remove URL entry
           if (Object.keys(updatedUrlSummaries).length === 0) {
@@ -217,6 +240,63 @@ export const useSummaryStore = create<SummaryState>()(
             },
           };
         });
+      },
+
+      // ✅ Sync specific summary to IndexedDB
+      syncToIndexedDB: async (url: string, summary: Summary) => {
+        try {
+          await summaryDB.saveSummary(url, summary);
+          logger.debug('✅ Synced summary to IndexedDB:', url);
+        } catch (error) {
+          logger.error('❌ Failed to sync to IndexedDB:', error);
+        }
+      },
+
+      // ✅ Load all summaries from IndexedDB on startup
+      loadFromIndexedDB: async () => {
+        try {
+          const summaries = await summaryDB.getAllSummaries();
+          const summariesRecord: Record<string, Record<string, Summary>> = {};
+
+          // ✅ Type guard: Only load valid Summary objects
+          summaries.forEach((summary) => {
+            // Validate it's a Summary (has content string, not messages array)
+            if (
+              summary &&
+              typeof summary === 'object' &&
+              'content' in summary &&
+              typeof summary.content === 'string' &&
+              'pageUrl' in summary &&
+              'options' in summary &&
+              !('messages' in summary) // Conversations have messages, summaries don't
+            ) {
+              const url = summary.pageUrl;
+              const hash = generateOptionsHash(summary.options);
+
+              if (!summariesRecord[url]) {
+                summariesRecord[url] = {};
+              }
+              summariesRecord[url][hash] = summary;
+            } else {
+              logger.warn('⚠️ Skipped invalid summary object:', {
+                hasContent: 'content' in summary,
+                hasPageUrl: 'pageUrl' in summary,
+                hasMessages: 'messages' in summary,
+              });
+            }
+          });
+
+          set({ summaries: summariesRecord });
+          logger.info('✅ Loaded summaries from IndexedDB:', {
+            count: Object.values(summariesRecord).reduce(
+              (total, urlSummaries) => total + Object.keys(urlSummaries).length,
+              0
+            ),
+            urls: Object.keys(summariesRecord).length,
+          });
+        } catch (error) {
+          logger.error('❌ Failed to load from IndexedDB:', error);
+        }
       },
     }),
     {

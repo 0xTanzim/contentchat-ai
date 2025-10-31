@@ -60,6 +60,9 @@ function App() {
     // 🔄 Load conversations from IndexedDB
     useChatStore.getState().loadFromIndexedDB();
 
+    // 🔄 Load summaries from IndexedDB
+    useSummaryStore.getState().loadFromIndexedDB();
+
     // 🔄 Migrate from localStorage to IndexedDB (one-time)
     summaryDB
       .migrateFromLocalStorage()
