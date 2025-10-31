@@ -16,6 +16,11 @@ This project was built for the **Google Chrome Built-in AI Challenge 2025**, sho
 ### 📹 Project Videos
 
 - **🎬 Feature Demo** (2:40): https://youtu.be/ridT8FSLx0k
+
+[![Feature Demo](https://img.youtube.com/vi/ridT8FSLx0k/0.jpg)](https://youtu.be/ridT8FSLx0k)
+
+
+
 - **📚 Setup Tutorial**: [How to Enable Chrome's Built-in AI](https://www.youtube.com/watch?v=finN5PfJyCg) - Step-by-step guide to enable Chrome AI flags
 
 ### 🔗 Links
@@ -26,13 +31,17 @@ This project was built for the **Google Chrome Built-in AI Challenge 2025**, sho
 ## ✨ Features
 
 ### 🤖 Smart Summarization
+
 Generate key-points, TL;DR, teasers, or headlines from any webpage with streaming support. Powered by **Summarizer API**.
 
 ### 💬 Intelligent Chat
+
 Ask questions about page content or have personal AI conversations with context awareness. Powered by **Prompt API (LanguageModel)**.
 
 ### ✍️ AI Writer
+
 Create original content with:
+
 - Tone control (formal, neutral, casual)
 - Format options (plain-text, markdown)
 - Length adjustment (short, medium, long)
@@ -40,9 +49,11 @@ Create original content with:
 - Integrated **Rewriter API** for text transformation
 
 ### 📚 Summary Library
+
 Save, organize, and search your summaries with full-text search and bookmark management.
 
 ### 🎯 Additional Features
+
 - **Context Menu Integration** - Right-click text to ask AI about it or generate content
 - **Dark Mode** - Beautiful UI that adapts to your system theme
 - **🔒 100% Private** - All AI processing happens on-device using Gemini Nano
@@ -56,8 +67,9 @@ Save, organize, and search your summaries with full-text search and bookmark man
 - **Chrome 128+** (recommended Chrome 140+ for all features)
 - **22 GB free disk space** (for AI models)
 - **Enable Chrome AI flags** - [Watch Setup Tutorial](https://www.youtube.com/watch?v=finN5PfJyCg)
-  
+
   Required flags:
+
   ```
   chrome://flags/#optimization-guide-on-device-model → Enabled
   chrome://flags/#prompt-api-for-gemini-nano → Enabled
@@ -65,7 +77,7 @@ Save, organize, and search your summaries with full-text search and bookmark man
   chrome://flags/#writer-api-for-gemini-nano → Enabled
   chrome://flags/#rewriter-api-for-gemini-nano → Enabled
   ```
-  
+
   **After enabling flags**: Restart Chrome completely (quit and reopen)
 
 ### Install from Source
@@ -143,29 +155,34 @@ contentchat-ai/
 This extension showcases **5 Chrome Built-in AI APIs**, all running on-device with Gemini Nano:
 
 ### 1. 📄 Summarizer API
+
 - Generate key-points, TL;DR, teasers, or headlines
 - Streaming support for real-time updates
 - Context-aware summarization
 
 ### 2. 💭 Prompt API (LanguageModel)
+
 - AI chat with page context
 - Personal AI conversations
 - Streaming responses
 - Multi-turn dialogue support
 
 ### 3. ✍️ Writer API
+
 - Original content generation
 - Tone control (formal, neutral, casual)
 - Format options (plain-text, markdown)
 - Length adjustment (short, medium, long)
 
 ### 4. 🔄 Rewriter API
+
 - Text transformation
 - Tone modification
 - Format conversion
 - Length adjustment
 
 ### 5. ✅ Proofreader API
+
 - Grammar checking
 - Spelling correction
 - Punctuation fixes
@@ -176,15 +193,19 @@ This extension showcases **5 Chrome Built-in AI APIs**, all running on-device wi
 ## 🌟 Why ContentChat AI?
 
 ### Privacy First 🔒
+
 All AI processing happens **on your device** using Gemini Nano. Zero data sent to servers, complete privacy guaranteed.
 
 ### Cost Efficient 💰
+
 No API keys, no server costs, no usage quotas. Build freely without worrying about expenses.
 
 ### Network Resilient ✅
+
 Works **offline** with consistent performance. Perfect for users on unstable connections.
 
 ### Hyper-Personalized 🎯
+
 Deliver personalized experiences with the guarantee that user input never leaves the device.
 
 ---
@@ -210,15 +231,19 @@ npm run test:e2e
 ## 📸 Screenshots
 
 ### Summary View
+
 Generate instant summaries with multiple formats (key-points, TL;DR, headline, teaser).
 
 ### Chat View
+
 Ask AI questions about the current page or have general conversations.
 
 ### Writer View
+
 Create content with AI assistance, integrated proofreader, and rewriter.
 
 ### Library View
+
 Organize and search your saved summaries.
 
 ---
@@ -236,6 +261,7 @@ Organize and search your saved summaries.
    npm run build
    ```
 3. **Load extension** in Chrome:
+
    - Navigate to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked" → Select `dist` folder
@@ -280,6 +306,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 Built for the **Google Chrome Built-in AI Challenge 2025** 🏆
 
 Special thanks to:
+
 - The **Chrome Team** for making on-device AI accessible to developers
 - The **Chrome Built-in AI APIs** that power this extension
 - **Gemini Nano** - the on-device AI model that makes privacy-first AI possible
@@ -289,6 +316,7 @@ Special thanks to:
 ## 🔗 Resources
 
 ### Project Links
+
 - **Demo Video**: https://youtu.be/ridT8FSLx0k
 - **Setup Tutorial**: https://www.youtube.com/watch?v=finN5PfJyCg
 - **GitHub Repository**: https://github.com/0xtanzim/contentchat-ai
@@ -296,6 +324,7 @@ Special thanks to:
 - **Devpost**: https://googlechromeai2025.devpost.com/
 
 ### Chrome Built-in AI Documentation
+
 - [Chrome Built-in AI Overview](https://developer.chrome.com/docs/ai/built-in)
 - [Summarizer API](https://developer.chrome.com/docs/ai/summarizer-api)
 - [Prompt API](https://developer.chrome.com/docs/ai/prompt-api)

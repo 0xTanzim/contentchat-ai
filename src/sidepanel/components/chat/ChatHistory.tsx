@@ -28,8 +28,9 @@ export const ChatHistory = memo(function ChatHistory() {
   const setActiveConversation = useChatStore(
     (state) => state.setActiveConversation
   );
-  const deleteConversation = useChatStore(
-    (state) => state.deleteConversation
+  const deleteConversation = useChatStore((state) => state.deleteConversation);
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId
   );
 
   // ✅ Memoize the sorted conversations array
@@ -92,40 +93,59 @@ export const ChatHistory = memo(function ChatHistory() {
           </div>
         ) : (
           <div className="space-y-2">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className="group flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-              >
-                <button
-                  onClick={() => handleLoadConversation(conv.id)}
-                  className="flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  <div className="font-medium text-sm line-clamp-2 mb-1">
-                    {conv.title}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{formatDate(conv.updatedAt)}</span>
-                    <span>•</span>
-                    <span>{conv.messages.length} messages</span>
-                  </div>
-                  {conv.mode === 'page-context' && conv.url !== 'unknown' && (
-                    <div className="text-xs text-muted-foreground mt-1 truncate">
-                      {conv.url}
-                    </div>
-                  )}
-                </button>
+            {conversations.map((conv) => {
+              const isActive = conv.id === activeConversationId;
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-8 w-8 cursor-pointer"
-                  onClick={(e) => handleDeleteConversation(e, conv.id)}
+              return (
+                <div
+                  key={conv.id}
+                  className={`group flex items-start gap-2 p-3 rounded-lg border transition-all ${
+                    isActive
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
+                  <button
+                    onClick={() => handleLoadConversation(conv.id)}
+                    className="flex-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div
+                        className={`font-medium text-sm line-clamp-2 ${
+                          isActive ? 'text-primary' : ''
+                        }`}
+                      >
+                        {conv.title}
+                      </div>
+                      {isActive && (
+                        <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded shrink-0">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatDate(conv.updatedAt)}</span>
+                      <span>•</span>
+                      <span>{conv.messages.length} messages</span>
+                    </div>
+                    {conv.mode === 'page-context' && conv.url !== 'unknown' && (
+                      <div className="text-xs text-muted-foreground mt-1 truncate">
+                        {conv.url}
+                      </div>
+                    )}
+                  </button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-8 w-8 cursor-pointer"
+                    onClick={(e) => handleDeleteConversation(e, conv.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
       </SheetContent>

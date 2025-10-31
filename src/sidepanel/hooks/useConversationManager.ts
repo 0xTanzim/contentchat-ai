@@ -44,13 +44,32 @@ export function useConversationManager(
     logger.debug('🏭 Factory: Creating/finding conversation', {
       mode,
       currentUrl,
+      activeConversationId,
     });
 
-    // 1. Check if active conversation matches mode
+    // 1. Check if active conversation matches mode AND context
     if (activeConversationId && conversations[activeConversationId]) {
       const activeConv = conversations[activeConversationId];
-      if (activeConv.mode === mode) {
-        logger.debug('✅ Using active conversation:', activeConversationId);
+      // Must match mode first
+      if (activeConv.mode !== mode) {
+        logger.debug(
+          '⚠️ Active conversation mode mismatch, will find correct one'
+        );
+      } else if (
+        mode === 'page-context' &&
+        currentUrl &&
+        activeConv.url === currentUrl
+      ) {
+        logger.debug(
+          '✅ Using active page-context conversation:',
+          activeConversationId
+        );
+        return activeConversationId;
+      } else if (mode === 'personal') {
+        logger.debug(
+          '✅ Using active personal conversation:',
+          activeConversationId
+        );
         return activeConversationId;
       }
     }
@@ -99,13 +118,23 @@ export function useConversationManager(
    * This ensures creation happens once, outside the render phase
    */
   const [conversationId, setConversationId] = useState<string | null>(() => {
-    // Check if conversation exists WITHOUT creating it
-    if (
-      activeConversationId &&
-      conversations[activeConversationId]?.mode === mode
-    ) {
-      isInitialized.current = true;
-      return activeConversationId;
+    // Check if active conversation matches mode AND context
+    if (activeConversationId && conversations[activeConversationId]) {
+      const activeConv = conversations[activeConversationId];
+      if (activeConv.mode === mode) {
+        // For page-context, must match URL too
+        if (
+          mode === 'page-context' &&
+          currentUrl &&
+          activeConv.url === currentUrl
+        ) {
+          isInitialized.current = true;
+          return activeConversationId;
+        } else if (mode === 'personal') {
+          isInitialized.current = true;
+          return activeConversationId;
+        }
+      }
     }
 
     // For page-context, check existing
@@ -157,6 +186,15 @@ export function useConversationManager(
     if (activeConversationId && activeConversationId !== conversationId) {
       const activeConv = conversations[activeConversationId];
       if (activeConv && activeConv.mode === mode) {
+        // For page-context, also check URL matches
+        if (
+          mode === 'page-context' &&
+          currentUrl &&
+          activeConv.url !== currentUrl
+        ) {
+          logger.debug('⚠️ Active conversation URL mismatch, ignoring');
+          return;
+        }
         logger.debug(
           '🔄 Switching to active conversation:',
           activeConversationId

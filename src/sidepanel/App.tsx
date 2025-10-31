@@ -1,6 +1,8 @@
 import { SuspenseFallback } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { isAIAvailable } from '@/lib/chrome-ai';
+import { chatDB } from '@/lib/db/chatDB';
+import { summaryDB } from '@/lib/db/summaryDB';
 import { createLogger } from '@/lib/logger';
 import { FileText, Library, MessageCircle, Sparkles } from 'lucide-react';
 import { ThemeProvider } from 'next-themes';
@@ -10,6 +12,8 @@ import { ErrorBanner } from './components/ErrorBanner';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useChromeExtension } from './hooks/useChromeExtension';
 import { useAppStore } from './stores/appStore';
+import { useChatStore } from './stores/chatStore';
+import { useSummaryStore } from './stores/summaryStore';
 
 const logger = createLogger('App');
 
@@ -52,6 +56,59 @@ function App() {
     // Check AI availability on mount
     const available = isAIAvailable();
     setAiAvailable(available);
+
+    // 🔄 Load conversations from IndexedDB
+    useChatStore.getState().loadFromIndexedDB();
+
+    // 🔄 Migrate from localStorage to IndexedDB (one-time)
+    summaryDB
+      .migrateFromLocalStorage()
+      .then((migratedCount) => {
+        if (migratedCount > 0) {
+          logger.info(`✅ Migrated ${migratedCount} summaries to IndexedDB`);
+        }
+      })
+      .catch((error) => {
+        logger.error('Migration failed:', error);
+      });
+
+    // 🧹 Cleanup old summaries on startup (30 days retention)
+    // First cleanup localStorage (will be phased out)
+    try {
+      const { cleanupOldHistory } = useSummaryStore.getState();
+      cleanupOldHistory(30);
+      logger.info('🧹 Cleaned up localStorage summaries older than 30 days');
+    } catch (error) {
+      logger.error('Failed to cleanup localStorage summaries:', error);
+    }
+
+    // Then cleanup IndexedDB (summaries)
+    summaryDB
+      .cleanupOld()
+      .then((deletedCount) => {
+        if (deletedCount > 0) {
+          logger.info(
+            `🧹 Cleaned up ${deletedCount} old summaries from IndexedDB`
+          );
+        }
+      })
+      .catch((error) => {
+        logger.error('Failed to cleanup IndexedDB summaries:', error);
+      });
+
+    // 🧹 Cleanup old chat conversations from IndexedDB (30 days retention)
+    chatDB
+      .cleanupOld()
+      .then((deletedCount) => {
+        if (deletedCount > 0) {
+          logger.info(
+            `🧹 Cleaned up ${deletedCount} old conversations from IndexedDB`
+          );
+        }
+      })
+      .catch((error) => {
+        logger.error('Failed to cleanup IndexedDB conversations:', error);
+      });
 
     // ✅ Listen for "Ask AI About This" messages from background
     const handleMessage = (

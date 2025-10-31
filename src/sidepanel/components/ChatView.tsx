@@ -6,6 +6,7 @@
 import { createLogger } from '@/lib/logger';
 import { useChatSession } from '@/sidepanel/hooks/useChatSession';
 import { useScrollToBottom } from '@/sidepanel/hooks/useScrollToBottom';
+import { useChatStore } from '@/sidepanel/stores/chatStore';
 import type { ChatMode } from '@/types/chat.types';
 import type { PageContent } from '@/types/summary.types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,6 +31,15 @@ export function ChatView({
 }: ChatViewProps) {
   const [mode, setMode] = useState<ChatMode>('page-context');
 
+  // Get store actions
+  const activeConversationId = useChatStore(
+    (state) => state.activeConversationId
+  );
+  const setActiveConversation = useChatStore(
+    (state) => state.setActiveConversation
+  );
+  const conversations = useChatStore((state) => state.conversations);
+
   // Chat session
   const {
     conversation,
@@ -46,6 +56,31 @@ export function ChatView({
     currentPage?.title,
     currentPage?.content
   );
+
+  // ✅ FIX: Use active conversation ONLY if it matches current mode
+  // This prevents showing wrong conversation when switching modes
+  const displayConversation = useMemo(() => {
+    if (activeConversationId && conversations[activeConversationId]) {
+      const activeConv = conversations[activeConversationId];
+      // Only use active conversation if mode matches
+      if (activeConv.mode === mode) {
+        return activeConv;
+      }
+    }
+    return conversation;
+  }, [activeConversationId, conversations, conversation, mode]);
+
+  // ✅ FIX: Clear active conversation when mode changes
+  useEffect(() => {
+    // When mode changes, clear active conversation so it uses the right one
+    if (activeConversationId && conversations[activeConversationId]) {
+      const activeConv = conversations[activeConversationId];
+      if (activeConv.mode !== mode) {
+        logger.debug('🔄 Mode changed, clearing active conversation');
+        setActiveConversation(null);
+      }
+    }
+  }, [mode, activeConversationId, conversations, setActiveConversation]);
 
   // ✅ Handle selected text context from "Ask AI About This"
   useEffect(() => {
@@ -84,10 +119,13 @@ export function ChatView({
 
   // Handle mode change
   const handleModeChange = (newMode: ChatMode) => {
+    logger.info('🔄 Mode changing', { from: mode, to: newMode });
+    // Clear active conversation when switching modes
+    setActiveConversation(null);
     setMode(newMode);
   };
 
-  const messages = conversation?.messages || [];
+  const messages = displayConversation?.messages || [];
   const hasMessages = messages.length > 0;
 
   // ✅ Debug: Log messages and streaming state
@@ -95,6 +133,10 @@ export function ChatView({
     messagesCount: messages.length,
     hasStreamingMessage: !!streamingMessage,
     isStreaming,
+    mode,
+    activeConversationId,
+    displayConversationId: displayConversation?.id,
+    displayConversationMode: displayConversation?.mode,
     streamingContent: streamingMessage?.content?.substring(0, 50),
     lastMessageContent: messages[messages.length - 1]?.content?.substring(
       0,

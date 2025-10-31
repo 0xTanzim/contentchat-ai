@@ -4,6 +4,7 @@
  * Supports page-context and personal chat modes
  */
 
+import { chatDB } from '@/lib/db/chatDB';
 import { createLogger } from '@/lib/logger';
 import type {
   ChatMode,
@@ -13,7 +14,6 @@ import type {
   MessageStatus,
 } from '@/types/chat.types';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 
 const logger = createLogger('ChatStore');
 
@@ -85,6 +85,10 @@ interface ChatState {
 
   // Utility
   clearAll: () => void;
+
+  // IndexedDB sync
+  syncToIndexedDB: (conversationId: string) => Promise<void>;
+  loadFromIndexedDB: () => Promise<void>;
 }
 
 /**
@@ -141,294 +145,313 @@ function generateTitleFromMessages(messages: Message[]): string {
 /**
  * Create chat store
  */
-export const useChatStore = create<ChatState>()(
-  persist(
-    (set, get) => ({
+export const useChatStore = create<ChatState>()((set, get) => ({
+  conversations: {},
+  activeConversationId: null,
+  settings: {
+    streamSpeed: 'medium',
+    temperature: 0.7,
+    maxTokens: 2000,
+  },
+
+  // Create new conversation
+  createConversation: (mode, url, pageTitle) => {
+    const id = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const conversationUrl = mode === 'personal' ? 'personal' : url || 'unknown';
+
+    const conversation: Conversation = {
+      id,
+      mode,
+      url: conversationUrl,
+      title: mode === 'personal' ? 'Personal Chat' : pageTitle || 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      settings: get().settings,
+    };
+
+    set((state) => ({
+      conversations: {
+        ...state.conversations,
+        [id]: conversation,
+      },
+    }));
+
+    // ✅ Sync to IndexedDB
+    chatDB.saveConversation(conversation).catch((error) => {
+      logger.error('Failed to sync conversation to IndexedDB:', error);
+    });
+
+    return id;
+  },
+
+  // ✅ NEW: Start fresh chat conversation
+  startNewChat: (mode, url, pageTitle) => {
+    const id = get().createConversation(mode, url, pageTitle);
+    set({ activeConversationId: id });
+    return id;
+  },
+
+  // Get conversation by ID
+  getConversation: (id) => {
+    return get().conversations[id];
+  },
+
+  // Get all conversations
+  getAllConversations: () => {
+    return Object.values(get().conversations).sort(
+      (a, b) => b.updatedAt - a.updatedAt
+    );
+  },
+
+  // Update conversation
+  updateConversation: (id, updates) => {
+    set((state) => {
+      const conversation = state.conversations[id];
+      if (!conversation) return state;
+
+      const updatedConversation = {
+        ...conversation,
+        ...updates,
+        updatedAt: Date.now(),
+      };
+
+      // ✅ Sync to IndexedDB
+      chatDB.saveConversation(updatedConversation).catch((error) => {
+        logger.error('Failed to sync conversation update to IndexedDB:', error);
+      });
+
+      return {
+        conversations: {
+          ...state.conversations,
+          [id]: updatedConversation,
+        },
+      };
+    });
+  },
+
+  // Delete conversation
+  deleteConversation: (id) => {
+    set((state) => {
+      const { [id]: deleted, ...rest } = state.conversations;
+      return {
+        conversations: rest,
+        activeConversationId:
+          state.activeConversationId === id ? null : state.activeConversationId,
+      };
+    });
+
+    // ✅ Delete from IndexedDB
+    chatDB.deleteConversation(id).catch((error) => {
+      logger.error('Failed to delete conversation from IndexedDB:', error);
+    });
+  },
+
+  // Set active conversation
+  setActiveConversation: (id) => {
+    set({ activeConversationId: id });
+  },
+
+  // Add message to conversation
+  addMessage: (conversationId, message) => {
+    const messageId = `msg_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
+    set((state) => {
+      const conversation = state.conversations[conversationId];
+      if (!conversation) return state;
+
+      const newMessage: Message = {
+        ...message,
+        id: messageId,
+        timestamp: Date.now(),
+      };
+
+      const updatedConversation = {
+        ...conversation,
+        messages: [...conversation.messages, newMessage],
+        updatedAt: Date.now(),
+      };
+
+      // ✅ Sync to IndexedDB
+      chatDB.saveConversation(updatedConversation).catch((error) => {
+        logger.error('Failed to sync message to IndexedDB:', error);
+      });
+
+      return {
+        conversations: {
+          ...state.conversations,
+          [conversationId]: updatedConversation,
+        },
+      };
+    });
+
+    return messageId;
+  },
+
+  // Update message
+  updateMessage: (conversationId, messageId, updates) => {
+    set((state) => {
+      const conversation = state.conversations[conversationId];
+      if (!conversation) return state;
+
+      const messages = conversation.messages.map((msg) =>
+        msg.id === messageId ? { ...msg, ...updates } : msg
+      );
+
+      const updatedConversation = {
+        ...conversation,
+        messages,
+        updatedAt: Date.now(),
+      };
+
+      // ✅ Sync to IndexedDB
+      chatDB.saveConversation(updatedConversation).catch((error) => {
+        logger.error('Failed to sync message update to IndexedDB:', error);
+      });
+
+      return {
+        conversations: {
+          ...state.conversations,
+          [conversationId]: updatedConversation,
+        },
+      };
+    });
+  },
+
+  // Delete message
+  deleteMessage: (conversationId, messageId) => {
+    set((state) => {
+      const conversation = state.conversations[conversationId];
+      if (!conversation) return state;
+
+      const messages = conversation.messages.filter(
+        (msg) => msg.id !== messageId
+      );
+
+      return {
+        conversations: {
+          ...state.conversations,
+          [conversationId]: {
+            ...conversation,
+            messages,
+            updatedAt: Date.now(),
+          },
+        },
+      };
+    });
+  },
+
+  // Set message status
+  setMessageStatus: (conversationId, messageId, status) => {
+    get().updateMessage(conversationId, messageId, { status });
+  },
+
+  // Clear all messages in conversation
+  clearConversation: (conversationId) => {
+    set((state) => {
+      const conversation = state.conversations[conversationId];
+      if (!conversation) return state;
+
+      return {
+        conversations: {
+          ...state.conversations,
+          [conversationId]: {
+            ...conversation,
+            messages: [],
+            updatedAt: Date.now(),
+          },
+        },
+      };
+    });
+  },
+
+  // Get conversations by mode
+  getConversationsByMode: (mode) => {
+    return get()
+      .getAllConversations()
+      .filter((conv) => conv.mode === mode);
+  },
+
+  // Get conversation by URL (for page-context mode)
+  getConversationByUrl: (url) => {
+    return get()
+      .getAllConversations()
+      .find((conv) => conv.url === url);
+  },
+
+  // Get or create conversation
+  getOrCreateConversation: (mode, url, pageTitle) => {
+    const state = get();
+
+    // For page-context mode, find existing conversation by URL
+    if (mode === 'page-context' && url) {
+      const existing = state.getConversationByUrl(url);
+      if (existing) return existing;
+    }
+
+    // For personal mode, find or create the personal conversation
+    // ✅ FIX: Use Object.values directly instead of getAllConversations()
+    if (mode === 'personal') {
+      const existing = Object.values(state.conversations).find(
+        (conv) => conv.mode === 'personal' && conv.url === 'personal'
+      );
+      if (existing) return existing;
+    }
+
+    // Create new conversation
+    const id = state.createConversation(mode, url, pageTitle);
+    return state.getConversation(id)!;
+  },
+
+  // Update settings
+  updateSettings: (settings) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        ...settings,
+      },
+    }));
+  },
+
+  // Clear all
+  clearAll: () => {
+    set({
       conversations: {},
       activeConversationId: null,
-      settings: {
-        streamSpeed: 'medium',
-        temperature: 0.7,
-        maxTokens: 2000,
-      },
+    });
+  },
 
-      // Create new conversation
-      createConversation: (mode, url, pageTitle) => {
-        const id = `conv_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`;
-        const conversationUrl =
-          mode === 'personal' ? 'personal' : url || 'unknown';
-
-        const conversation: Conversation = {
-          id,
-          mode,
-          url: conversationUrl,
-          title:
-            mode === 'personal' ? 'Personal Chat' : pageTitle || 'New Chat',
-          messages: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          settings: get().settings,
-        };
-
-        set((state) => ({
-          conversations: {
-            ...state.conversations,
-            [id]: conversation,
-          },
-        }));
-
-        return id;
-      },
-
-      // ✅ NEW: Start fresh chat conversation
-      startNewChat: (mode, url, pageTitle) => {
-        const id = get().createConversation(mode, url, pageTitle);
-        set({ activeConversationId: id });
-        return id;
-      },
-
-      // Get conversation by ID
-      getConversation: (id) => {
-        return get().conversations[id];
-      },
-
-      // Get all conversations
-      getAllConversations: () => {
-        return Object.values(get().conversations).sort(
-          (a, b) => b.updatedAt - a.updatedAt
-        );
-      },
-
-      // Update conversation
-      updateConversation: (id, updates) => {
-        set((state) => {
-          const conversation = state.conversations[id];
-          if (!conversation) return state;
-
-          return {
-            conversations: {
-              ...state.conversations,
-              [id]: {
-                ...conversation,
-                ...updates,
-                updatedAt: Date.now(),
-              },
-            },
-          };
-        });
-      },
-
-      // Delete conversation
-      deleteConversation: (id) => {
-        set((state) => {
-          const { [id]: deleted, ...rest } = state.conversations;
-          return {
-            conversations: rest,
-            activeConversationId:
-              state.activeConversationId === id
-                ? null
-                : state.activeConversationId,
-          };
-        });
-      },
-
-      // Set active conversation
-      setActiveConversation: (id) => {
-        set({ activeConversationId: id });
-      },
-
-      // Add message to conversation
-      addMessage: (conversationId, message) => {
-        const messageId = `msg_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`;
-
-        set((state) => {
-          const conversation = state.conversations[conversationId];
-          if (!conversation) return state;
-
-          const newMessage: Message = {
-            ...message,
-            id: messageId,
-            timestamp: Date.now(),
-          };
-
-          return {
-            conversations: {
-              ...state.conversations,
-              [conversationId]: {
-                ...conversation,
-                messages: [...conversation.messages, newMessage],
-                updatedAt: Date.now(),
-              },
-            },
-          };
-        });
-
-        return messageId;
-      },
-
-      // Update message
-      updateMessage: (conversationId, messageId, updates) => {
-        set((state) => {
-          const conversation = state.conversations[conversationId];
-          if (!conversation) return state;
-
-          const messages = conversation.messages.map((msg) =>
-            msg.id === messageId ? { ...msg, ...updates } : msg
-          );
-
-          return {
-            conversations: {
-              ...state.conversations,
-              [conversationId]: {
-                ...conversation,
-                messages,
-                updatedAt: Date.now(),
-              },
-            },
-          };
-        });
-      },
-
-      // Delete message
-      deleteMessage: (conversationId, messageId) => {
-        set((state) => {
-          const conversation = state.conversations[conversationId];
-          if (!conversation) return state;
-
-          const messages = conversation.messages.filter(
-            (msg) => msg.id !== messageId
-          );
-
-          return {
-            conversations: {
-              ...state.conversations,
-              [conversationId]: {
-                ...conversation,
-                messages,
-                updatedAt: Date.now(),
-              },
-            },
-          };
-        });
-      },
-
-      // Set message status
-      setMessageStatus: (conversationId, messageId, status) => {
-        get().updateMessage(conversationId, messageId, { status });
-      },
-
-      // Clear all messages in conversation
-      clearConversation: (conversationId) => {
-        set((state) => {
-          const conversation = state.conversations[conversationId];
-          if (!conversation) return state;
-
-          return {
-            conversations: {
-              ...state.conversations,
-              [conversationId]: {
-                ...conversation,
-                messages: [],
-                updatedAt: Date.now(),
-              },
-            },
-          };
-        });
-      },
-
-      // Get conversations by mode
-      getConversationsByMode: (mode) => {
-        return get()
-          .getAllConversations()
-          .filter((conv) => conv.mode === mode);
-      },
-
-      // Get conversation by URL (for page-context mode)
-      getConversationByUrl: (url) => {
-        return get()
-          .getAllConversations()
-          .find((conv) => conv.url === url);
-      },
-
-      // Get or create conversation
-      getOrCreateConversation: (mode, url, pageTitle) => {
-        const state = get();
-
-        // For page-context mode, find existing conversation by URL
-        if (mode === 'page-context' && url) {
-          const existing = state.getConversationByUrl(url);
-          if (existing) return existing;
-        }
-
-        // For personal mode, find or create the personal conversation
-        // ✅ FIX: Use Object.values directly instead of getAllConversations()
-        if (mode === 'personal') {
-          const existing = Object.values(state.conversations).find(
-            (conv) => conv.mode === 'personal' && conv.url === 'personal'
-          );
-          if (existing) return existing;
-        }
-
-        // Create new conversation
-        const id = state.createConversation(mode, url, pageTitle);
-        return state.getConversation(id)!;
-      },
-
-      // Update settings
-      updateSettings: (settings) => {
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            ...settings,
-          },
-        }));
-      },
-
-      // Clear all
-      clearAll: () => {
-        set({
-          conversations: {},
-          activeConversationId: null,
-        });
-      },
-    }),
-    {
-      name: 'contentchat-chat-v2',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        conversations: state.conversations,
-        settings: state.settings,
-      }),
-      // Migration from v1 to v2
-      migrate: (persistedState: any) => {
-        // Check if this is legacy format
-        if (
-          persistedState.conversations &&
-          !persistedState.conversations[
-            Object.keys(persistedState.conversations)[0]
-          ]?.id
-        ) {
-          logger.info('🔄 Migrating chat store from v1 to v2...');
-          return {
-            ...persistedState,
-            conversations: migrateLegacyConversations(
-              persistedState.conversations
-            ),
-            activeConversationId: null,
-            settings: {
-              streamSpeed: 'medium',
-              temperature: 0.7,
-              maxTokens: 2000,
-            },
-          };
-        }
-        return persistedState;
-      },
-      version: 2,
+  // ✅ Sync specific conversation to IndexedDB
+  syncToIndexedDB: async (conversationId: string) => {
+    const conversation = get().conversations[conversationId];
+    if (conversation) {
+      try {
+        await chatDB.saveConversation(conversation);
+        logger.debug('✅ Synced conversation to IndexedDB:', conversationId);
+      } catch (error) {
+        logger.error('❌ Failed to sync to IndexedDB:', error);
+      }
     }
-  )
-);
+  },
+
+  // ✅ Load all conversations from IndexedDB on startup
+  loadFromIndexedDB: async () => {
+    try {
+      const conversations = await chatDB.getAllConversations();
+      const conversationsRecord: Record<string, Conversation> = {};
+
+      conversations.forEach((conv) => {
+        conversationsRecord[conv.id] = conv;
+      });
+
+      set({ conversations: conversationsRecord });
+      logger.info('✅ Loaded conversations from IndexedDB:', {
+        count: conversations.length,
+      });
+    } catch (error) {
+      logger.error('❌ Failed to load from IndexedDB:', error);
+    }
+  },
+}));
