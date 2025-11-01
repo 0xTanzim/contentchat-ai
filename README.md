@@ -19,8 +19,6 @@ This project was built for the **Google Chrome Built-in AI Challenge 2025**, sho
 
 [![Feature Demo](https://img.youtube.com/vi/ridT8FSLx0k/0.jpg)](https://youtu.be/ridT8FSLx0k)
 
-
-
 - **📚 Setup Tutorial**: [How to Enable Chrome's Built-in AI](https://www.youtube.com/watch?v=finN5PfJyCg) - Step-by-step guide to enable Chrome AI flags
 
 ### 🔗 Links
@@ -147,8 +145,32 @@ contentchat-ai/
 │   ├── components/       # Reusable UI components
 │   └── types/            # TypeScript definitions
 ├── public/               # Static assets
+├── docs/                 # Documentation
+│   └── ARCHITECTURE.md   # 📐 Detailed architecture documentation
 └── tests/                # Test files
 ```
+
+## 📐 Architecture
+
+ContentChat AI follows a **modular, layered architecture** with clear separation of concerns:
+
+- **Chrome Extension Layer**: Manifest V3 with background service worker, content scripts, and side panel UI
+- **Frontend Layer**: React 19 components with lazy loading and optimized rendering
+- **State Management**: Zustand stores for conversations, summaries, and app state
+- **Service Layer**: Business logic for AI operations (chat, summary, writer, rewriter, proofreader)
+- **Data Layer**: IndexedDB persistence with 30-day retention policy
+- **Chrome AI Layer**: Wrapper for Chrome Built-in AI APIs with error handling
+
+**📚 For detailed architecture documentation with diagrams, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md)**
+
+Key architectural highlights:
+
+- ✅ **Privacy-First**: Zero external API calls, all processing on-device
+- ✅ **Type-Safe**: Strict TypeScript with comprehensive type guards
+- ✅ **Performance-Optimized**: Code splitting, memoization, lazy loading
+- ✅ **Modular Design**: Feature-based organization with clear boundaries
+- ✅ **Data Isolation**: Separate IndexedDB databases prevent data mixing
+- ✅ **Design Patterns**: Factory, Repository, Observer, Strategy, Adapter patterns
 
 ## 🎯 Chrome Built-in AI APIs Used
 
@@ -331,6 +353,11 @@ Special thanks to:
 - [Writer API](https://developer.chrome.com/docs/ai/writer-api)
 - [Rewriter API](https://developer.chrome.com/docs/ai/rewriter-api)
 - [Proofreader API](https://developer.chrome.com/docs/ai/proofreader-api)
+
+### Project Documentation
+
+- [📐 Architecture Documentation](./docs/ARCHITECTURE.md) - Comprehensive system architecture with diagrams
+- [📖 Understanding Chrome Built-in AI](./docs/01-UNDERSTANDING-CHROME-BUILT-IN-AI.md) - Developer guide
 
 ---
 
