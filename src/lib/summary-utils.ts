@@ -3,6 +3,8 @@
  * Calculate stats, format text, etc.
  */
 
+import logger from '@/lib/logger';
+
 export interface SummaryStats {
   originalWordCount: number;
   summaryWordCount: number;
